@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-server
+  namespace: go-server-ns
+  labels:
+    app: go-server
+spec:
+  type: LoadBalancer
+  selector:
+    app: go-server
+  ports:
+  - port: 8090
+    targetPort: 8090

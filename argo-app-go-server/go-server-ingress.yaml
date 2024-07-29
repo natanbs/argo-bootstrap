@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: go-server-ing
+  namespace: go-server-ns
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: go.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: go-server
+            port:
+              number: 8090
+        path: /go-server
+        pathType: Prefix
