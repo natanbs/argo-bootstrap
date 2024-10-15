@@ -10,7 +10,7 @@ spec:
     name: in-cluster   #update cluster name if its different
   source:
     repoURL: https://natanbs.github.io/go-server/Packages
-    targetRevision: main
+    targetRevision: ""
     chart: go-server
     helm:
       values: |
