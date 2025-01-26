@@ -16,7 +16,7 @@ fi
 brew list k3d >/dev/null || brew install k3d
 
 echo K3D Create cluster with the registry
-k3d cluster create cluster-argo --port '8080:80@loadbalancer' --port '8443:443@loadbalancer' --port '8090:8090@loadbalancer'
+k3d cluster create cluster-argo --port '8080:80@loadbalancer' --port '8443:443@loadbalancer' --port '8090:8090@loadbalancer' --port '8091:8090@loadbalancer'
 
 # echo Create ArgoCD
 helm repo add argocd https://dandydeveloper.github.io/charts/

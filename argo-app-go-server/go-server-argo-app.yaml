@@ -16,4 +16,8 @@ spec:
       values: |
         controller:
           service:
-            type: ClusterIP    
+            type: ClusterIP
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
