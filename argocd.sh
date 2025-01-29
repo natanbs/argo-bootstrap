@@ -56,12 +56,13 @@ echo Set admin password to $admin_pass - Change in the script
 echo Change admin password
 argocd account update-password --current-password $init_pass --new-password $admin_pass
 
-echo Create argo application go-server
+# echo Create argo application go-server
 user=natanbs
 echo Create secret for ghcr.io
 kubectl create ns app-ns
 kubectl create secret -n app-ns docker-registry ghcr-login-secret --docker-server=https://ghcr.io --docker-username=${user} --docker-password=${token}
 argocd repo add https://github.com/${user}/go-server --username ${user} --password $token
-# helm upgrade --install -n app-ns go-server oci://ghcr.io/${user}/go-server
+# # helm upgrade --install -n app-ns go-server oci://ghcr.io/${user}/go-server
 
-kubectl apply -f argo-app-go-server/go-server-argo-app.yaml
+# kubectl apply -f argo-app-go-server/go-server-argo-app.yaml
+kubectl apply -f argo-app-go-server/go-server-argo-appSet.yaml
