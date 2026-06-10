@@ -3,31 +3,35 @@
 ############################################################################
 
 # Usage
-if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]] || [[ "$1" == "" ]]; then
-	echo
-	echo "Usage:"
-	echo "$0 <git-token>     # If app in private repo"
-	echo
-	exit 1
-else
-	token=$1
+if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+  echo
+  echo "Usage:"  
+  echo "$0 <git-token>     # If app in private repo"
+  echo
+  exit 1
+else 
+  token=$1
 fi
 
 brew list k3d >/dev/null || brew install k3d
 
-echo K3D Create cluster with the registry
-k3d cluster create cluster-argo --port '8080:80@loadbalancer' --port '8443:443@loadbalancer' --port '8090:8090@loadbalancer' --port '8091:8090@loadbalancer'
+echo Cretate registry
+k3d registry create reg -p 50000
+docker rename k3d-reg localhost
 
-# echo Create ArgoCD
-helm repo add argocd https://dandydeveloper.github.io/charts/
-cd helm
-helm dependency build
-cd -
-helm upgrade --install -n argocd argocd helm --create-namespace
+echo K3D Create cluster with the registry
+#k3d cluster create cluster1 --no-lb --k3s-arg "--disable=traefik" --registry-use k3d-reg:50000 --agents 2 --servers 1 --port "8081:80@loadbalancer" -p "8443:443@loadbalancer"
+#k3d cluster create cluster-argo --agents 2 --port '8081:80@loadbalancer' --port '8443:443@loadbalancer' --port '8090:8090@loadbalancer' --registry-use k3d-reg:50000
+#k3d cluster create cluster-argo --agents 2 --port '8081:80@loadbalancer' --port '8443:443@loadbalancer' --port '8090:8090@loadbalancer' --port '50001:50000@loadbalancer' --registry-use k3d-reg:50000
+k3d cluster create cluster-argo --agents 2 --port '8081:80@loadbalancer' --port '8443:443@loadbalancer' --port '8090:8090@loadbalancer' --port '50000:5000@loadbalancer' --registry-use localhost:50000
+
+echo Create ArgoCD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 # Get server IP
 IP=$(ipconfig getifaddr en0)
-# Patch the argocd service as a load balancer using the server's IP
+# Patch the aergocd service as a load balancer using the server's IP
 kubectl patch svc argocd-server -n argocd -p '{"spec" : {"type": "LoadBalancer", "externalIPs": ["'${IP}'"]}}'
 
 # ArgoCD cli
@@ -42,27 +46,50 @@ done
 init_pass=$(argocd admin initial-password -n argocd | head -1)
 echo $init_pass
 
-echo Patch trafik conflicting ports. "80 > 81" "443 > 9443"
-kubectl patch svc traefik -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/port", "value": 81},{"op": "replace", "path": "/spec/ports/0/nodePort", "value": 32081},{"op": "replace", "path": "/spec/ports/1/port", "value": 9443},{"op": "replace", "path": "/spec/ports/1/nodePort", "value": 32443}]'
+echo Add argocd ingress
+kubectl apply -f argo-ingress.yaml
+#echo Port Forwarding 8080:443
+#kubectl port-forward svc/argocd-server -n argocd 8080:443 >/dev/null 2>&1 &
 
 echo
 sleep 30
 
 echo Init login
-argocd login localhost:8080 --username admin --password $init_pass --insecure
+argocd login localhost:8081 --username admin --password $init_pass --insecure
 
 admin_pass=ChangeMe
 echo Set admin password to $admin_pass - Change in the script
 echo Change admin password
 argocd account update-password --current-password $init_pass --new-password $admin_pass
 
-# echo Create argo application go-server
-user=natanbs
-echo Create secret for ghcr.io
-kubectl create ns app-ns
-kubectl create secret -n app-ns docker-registry ghcr-login-secret --docker-server=https://ghcr.io --docker-username=${user} --docker-password=${token}
-argocd repo add https://github.com/${user}/go-server --username ${user} --password $token
-# # helm upgrade --install -n app-ns go-server oci://ghcr.io/${user}/go-server
+echo Patch trafik conflicting ports. "80 > 81" "443 > 9443"
+kubectl patch svc traefik -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/port", "value": 81},{"op": "replace", "path": "/spec/ports/0/nodePort", "value": 32081},{"op": "replace", "path": "/spec/ports/1/port", "value": 9443},{"op": "replace", "path": "/spec/ports/1/nodePort", "value": 32443}]'
 
-# kubectl apply -f argo-app-go-server/go-server-argo-app.yaml
-kubectl apply -f argo-app-go-server/go-server-argo-appSet.yaml
+# Create the app image
+echo Build image
+cd ../go-server
+docker build -t go-server:v1.0 .
+cd -
+
+echo Docker tag
+docker tag go-server:v1.0 localhost:50000/go-server:v1.0
+
+echo Docker push
+docker push localhost:50000/go-server:v1.0
+
+#echo kubectl run
+#kubectl run go-server --image localhost:5000/go-server:v0.1
+
+# Deploy go-server
+# cd argo-app-go-server
+# kubectl create ns go-server-ns
+# kubectl apply -f go-server-deploy.yaml
+# kubectl apply -f go-server-svc.yaml
+##kubectl apply -f go-server-ingress.yaml
+# Patch the go-server service as a load balancer using the server's IP
+#kubectl patch svc go-server -n go-server-ns -p '{"spec" : {"type": "LoadBalancer", "externalIPs": ["'${IP}'"]}}'
+# cd -
+
+echo Create argo application go-server
+argocd repo add https://github.com/natanbs/argo-bootstrap --username natanbs --password $token
+kubectl apply -f argo-app-go-server/go-server-app.yaml
