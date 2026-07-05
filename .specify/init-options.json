@@ -1,0 +1,10 @@
+{
+  "ai": "opencode",
+  "branch_numbering": "sequential",
+  "context_file": "AGENTS.md",
+  "here": true,
+  "integration": "opencode",
+  "script": "sh",
+  "speckit_version": "0.8.12+adlc39",
+  "team_ai_directives": "/home/pi/projects/argo-bootstrap/.specify/extensions/.cache/downloads/team-ai-directives-kb-extracted/agentic-sdlc-team-ai-directives-main"
+}

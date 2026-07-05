@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "extensions": {
+    "git": {
+      "version": "1.2.6",
+      "source": "local",
+      "manifest_hash": "sha256:8c1f936745153d595c98746af0862ec83562d84c41660341ddcc6fe0630921b6",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "opencode": [
+          "git.feature",
+          "git.validate",
+          "git.remote",
+          "git.initialize",
+          "git.commit",
+          "git.workspace",
+          "git.setup-ignore"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-10T09:23:43.488520+00:00"
+    },
+    "levelup": {
+      "version": "1.7.0",
+      "source": "local",
+      "manifest_hash": "sha256:e737fc68d6df4ca1a2e5e269c4bc43bd57e9a7a6aa2052ed2f12e7947409dbb4",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "opencode": [
+          "levelup.init",
+          "levelup.clarify",
+          "levelup.specify",
+          "levelup.skill",
+          "levelup.implement",
+          "levelup.trace",
+          "levelup.validate"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-10T09:23:45.802897+00:00"
+    },
+    "quick": {
+      "version": "1.1.0",
+      "source": "local",
+      "manifest_hash": "sha256:4bda02975eb0f8167b0576ef03af0af0e51f54cbbf14c12d304160eacd513a6f",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "opencode": [
+          "quick.implement"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-10T09:23:46.133134+00:00"
+    },
+    "team-ai-directives": {
+      "version": "1.7.8",
+      "source": "local",
+      "manifest_hash": "sha256:e4e1bae369b7760bd35a5ba9a61cf0fc472e3808d2ff2668189a1f0e992d9e07",
+      "enabled": true,
+      "priority": 1,
+      "registered_commands": {
+        "opencode": [
+          "team.verify",
+          "team.discover",
+          "team.constitution",
+          "team.skills",
+          "team.repair"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-10T10:03:05.063468+00:00"
+    }
+  }
+}

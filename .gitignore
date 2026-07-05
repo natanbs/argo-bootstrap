@@ -1,0 +1,7 @@
+
+.opencode
+.DS_Store
+*.log
+*.swp
+Thumbs.db
+.env*
