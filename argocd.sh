@@ -78,6 +78,7 @@ elif ! k3d registry list 2>/dev/null | grep -q "$REG_NAME"; then
     REG_HOST_PORT=50001
   fi
   k3d registry create reg -p "$REG_HOST_PORT"
+  docker update --restart unless-stopped k3d-reg
 fi
 
 echo K3D Create cluster with the registry
