@@ -45,7 +45,7 @@ As a user of the reg.sh script, when I run the script with an "all tags" flag, I
 ### Edge Cases
 
 - What happens when an image has zero tags? The image should still be listed with an empty tags section.
-- What happens when an invalid flag is provided? The script should display usage information or ignore the flag gracefully, continuing with default (limited) behavior.
+- What happens when an invalid flag is provided? The script prints a short usage hint (e.g., `Usage: reg.sh [-a|--all]`) to stderr and exits with a non-zero code.
 - What happens when the registry is unreachable? The script should handle the error as it currently does (curl failure output).
 
 ## Requirements *(mandatory)*
@@ -58,6 +58,7 @@ As a user of the reg.sh script, when I run the script with an "all tags" flag, I
 - **FR-004**: System MUST preserve the existing sort order of tags within the limited display.
 - **FR-005**: System MUST continue to display images even when they have fewer than 3 tags (show all available).
 - **FR-006**: System MUST handle the case where an image has no tags gracefully.
+- **FR-007**: System MUST print a usage hint to stderr and exit with a non-zero code when an invalid or unrecognized flag is provided.
 
 ### Key Entities
 
@@ -72,6 +73,12 @@ As a user of the reg.sh script, when I run the script with an "all tags" flag, I
 - **SC-002**: Running the script with `-a` or `--all` produces the complete tag list for all images, matching the original script behavior exactly.
 - **SC-003**: The default output is scannable in under 5 seconds for a registry with 20+ images.
 - **SC-004**: The feature adds no new external dependencies or tools beyond what the script already requires.
+
+## Clarifications
+
+### Session 2026-07-21
+
+- Q: How should the script handle invalid/unrecognized flags? → A: Print a short usage hint to stderr and exit with a non-zero code.
 
 ## Assumptions
 
