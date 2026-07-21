@@ -29,8 +29,8 @@ _(No tasks in this phase.)_
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T001 [SYNC] Add flag parsing skeleton with case statement in reg.sh (handle -h, --help, -f, --full, and invalid flags)
-- [ ] T002 [SYNC] Replace plain `sort` with `sort -V -r` for version-aware descending tag sort in reg.sh
+- [x] T001 [SYNC] Add flag parsing skeleton with case statement in reg.sh (handle -h, --help, -f, --full, and invalid flags)
+- [x] T002 [SYNC] Replace plain `sort` with `sort -V -r` for version-aware descending tag sort in reg.sh
 
 **Checkpoint**: Foundation ready — flag parsing and version sort in place, user story implementation can begin.
 
@@ -44,7 +44,7 @@ _(No tasks in this phase.)_
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Implement default mode: limit tag output to 3 using `head -n 3` after version sort in reg.sh
+- [x] T003 [US1] Implement default mode: limit tag output to 3 using `head -n 3` after version sort in reg.sh
 
 **Checkpoint**: Default behavior works — running `./reg.sh` shows last 3 version-sorted tags per image.
 
@@ -58,7 +58,7 @@ _(No tasks in this phase.)_
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Implement full mode: skip tag limit when `-f` or `--full` flag is provided in reg.sh
+- [x] T004 [US2] Implement full mode: skip tag limit when `-f` or `--full` flag is provided in reg.sh
 
 **Checkpoint**: Full mode works — running `./reg.sh -f` shows all version-sorted tags.
 
@@ -72,7 +72,7 @@ _(No tasks in this phase.)_
 
 ### Implementation for User Story 3
 
-- [ ] T005 [US3] Implement help message: print usage text to stdout and exit 0 when `-h` or `--help` is provided in reg.sh
+- [x] T005 [US3] Implement help message: print usage text to stdout and exit 0 when `-h` or `--help` is provided in reg.sh
 
 **Checkpoint**: Help works — running `./reg.sh -h` shows usage information.
 
@@ -82,9 +82,9 @@ _(No tasks in this phase.)_
 
 **Purpose**: Edge cases and error handling that affect multiple user stories.
 
-- [ ] T006 [SYNC] Handle invalid flags: print usage hint to stderr and exit with non-zero code in reg.sh
-- [ ] T007 [SYNC] Handle edge case: gracefully display images with zero tags in reg.sh
-- [ ] T008 Run quickstart.md validation scenarios against local registry
+- [x] T006 [SYNC] Handle invalid flags: print usage hint to stderr and exit with non-zero code in reg.sh
+- [x] T007 [SYNC] Handle edge case: gracefully display images with zero tags in reg.sh
+- [x] T008 Run quickstart.md validation scenarios against local registry
 
 ---
 
