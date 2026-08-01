@@ -1,1 +1,3 @@
-{"feature_directory": "specs/001-cli-tool-install"}
+{
+  "feature_directory": "specs/005-port-management"
+}

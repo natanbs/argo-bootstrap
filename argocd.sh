@@ -1,6 +1,16 @@
 #############################################################################
 # Full Bootstrap of ArgoCD with Go Web server using K3d and local registry #
-############################################################################
+#############################################################################
+# Port Allocation Table (single source of truth)
+# Service         | Host   | Cluster | Service | Container | TLS | Defined In
+# ----------------|--------|---------|---------|-----------|-----|-----------
+# ArgoCD HTTP     | 8081   | 8081    | 8081    | 8080      | no  | argocd.sh (k3d --port, svc patch)
+# ArgoCD HTTPS    | 8443   | 8443    | 8443    | 443       | yes | argocd.sh (k3d --port, svc patch)
+# Go Server       | 8090   | 8090    | 8090    | 8090      | no  | argocd.sh (k3d --port), deployment.yaml
+# Registry        | 50000  | 5000    | n/a     | n/a       | no  | argocd.sh (k3d registry create)
+#
+# Reserved host port ranges: 8081, 8443, 8090 (apps); 50000-50004 (registry fallback)
+# Note: Traefik keeps its default 80/443 — no patching needed
 
 # Usage
 if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
@@ -61,6 +71,18 @@ install_tool() {
 
 install_tool k3d
 
+# Check all mapped host ports before binding
+MAPPED_PORTS=(8081 8443 8090)
+check_mapped_ports() {
+  for p in "${MAPPED_PORTS[@]}"; do
+    if port_in_use "$p"; then
+      echo "ERROR: Required port $p is already in use by $(lsof -i :$p 2>/dev/null | awk 'NR==2{print $1}')"
+      echo "       Run: lsof -i :$p"
+      exit 1
+    fi
+  done
+}
+
 echo Create registry if not exists
 port_in_use() {
   local p=$1
@@ -73,9 +95,18 @@ REG_HOST_PORT=50000
 if docker inspect "$REG_NAME" >/dev/null 2>&1; then
   echo "Registry container already exists, skipping creation"
 elif ! k3d registry list 2>/dev/null | grep -q "$REG_NAME"; then
-  if port_in_use $REG_HOST_PORT; then
-    echo "Port $REG_HOST_PORT already in use, using port 50001 instead"
-    REG_HOST_PORT=50001
+  # Fallback loop: try ports 50000-50004
+  for port in {50000..50004}; do
+    if ! port_in_use "$port"; then
+      REG_HOST_PORT=$port
+      break
+    fi
+    echo "Port $port is in use, trying next..."
+  done
+  if port_in_use "$REG_HOST_PORT"; then
+    echo "ERROR: All registry ports 50000-50004 are in use."
+    echo "       Free a port and re-run."
+    exit 1
   fi
   k3d registry create reg -p "$REG_HOST_PORT"
   docker update --restart unless-stopped k3d-reg
@@ -85,12 +116,13 @@ echo K3D Create cluster with the registry
 # Registry internal port in the Docker network is always 5000
 REG_INT_PORT=5000
 if ! k3d cluster list 2>/dev/null | grep -q 'cluster-argo'; then
-  k3d cluster create cluster-argo --agents 2 \
-    --port '8081:80@loadbalancer' \
-    --port '8443:443@loadbalancer' \
-    --port '8090:8090@loadbalancer' \
-    --registry-use "${REG_NAME}:${REG_INT_PORT}"
+  check_mapped_ports
+  k3d cluster create --config k3d-config.yaml
+else
+  k3d cluster start cluster-argo
 fi
+k3d kubeconfig merge cluster-argo --switch-context 2>/dev/null || true
+kubectl config use-context k3d-cluster-argo 2>/dev/null || true
 
 echo Create ArgoCD
 install_tool kubectl
@@ -106,6 +138,12 @@ fi
 # Patch the aergocd service as a load balancer using the server's IP
 kubectl patch svc argocd-server -n argocd -p '{"spec" : {"type": "LoadBalancer", "externalIPs": ["'${IP}'"]}}'
 
+# Patch argocd-server ports to avoid Traefik conflict (Traefik keeps default 80/443)
+kubectl patch svc argocd-server -n argocd --type='json' -p='[
+  {"op": "replace", "path": "/spec/ports/0/port", "value": 8081},
+  {"op": "replace", "path": "/spec/ports/1/port", "value": 8443}
+]'
+
 # ArgoCD cli
 install_tool argocd
 
@@ -120,8 +158,16 @@ echo $init_pass
 
 echo Add argocd ingress
 kubectl apply -f argo-ingress.yaml
-#echo Port Forwarding 8080:443
-#kubectl port-forward svc/argocd-server -n argocd 8080:443 >/dev/null 2>&1 &
+
+echo Generate self-signed TLS certificate for HTTPS
+openssl req -x509 -newkey rsa:4096 -nodes \
+  -keyout /tmp/argocd-tls-key.pem \
+  -out /tmp/argocd-tls-cert.pem \
+  -days 365 -subj "/CN=localhost/O=ArgoCD" 2>/dev/null
+kubectl create secret tls argocd-tls -n argocd \
+  --cert=/tmp/argocd-tls-cert.pem \
+  --key=/tmp/argocd-tls-key.pem 2>/dev/null
+rm -f /tmp/argocd-tls-*.pem
 
 echo
 sleep 30
@@ -136,9 +182,6 @@ if argocd login localhost:8081 --username admin --password $init_pass --insecure
 else
   argocd login localhost:8081 --username admin --password $admin_pass --insecure
 fi
-
-echo Patch trafik conflicting ports. "80 > 81" "443 > 9443"
-kubectl patch svc traefik -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/port", "value": 81},{"op": "replace", "path": "/spec/ports/0/nodePort", "value": 32081},{"op": "replace", "path": "/spec/ports/1/port", "value": 9443},{"op": "replace", "path": "/spec/ports/1/nodePort", "value": 32443}]'
 
 # Create the app image
 echo Build image

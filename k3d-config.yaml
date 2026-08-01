@@ -1,0 +1,28 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: cluster-argo
+servers: 1
+agents: 2
+ports:
+  - port: 8081:8081
+    nodeFilters:
+      - loadbalancer
+  - port: 8443:8443
+    nodeFilters:
+      - loadbalancer
+  - port: 8090:8090
+    nodeFilters:
+      - loadbalancer
+  - port: 8888:8888
+    nodeFilters:
+      - loadbalancer
+  - port: 7010:7010
+    nodeFilters:
+      - loadbalancer
+registries:
+  use:
+    - k3d-reg:5000
+options:
+  k3d:
+    disableLoadbalancer: false
