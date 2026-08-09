@@ -8,38 +8,31 @@ settings:
 hooks:
   before_constitution:
   - extension: git
-    command: speckit.git.initialize
+    command: git.initialize
     enabled: true
     optional: false
     prompt: Execute speckit.git.initialize?
     description: Initialize Git repository before constitution setup
     condition: null
-  - extension: team-ai-directives
-    command: adlc.team-ai-directives.constitution
-    enabled: true
-    optional: false
-    prompt: Execute adlc.team-ai-directives.constitution?
-    description: Discover and inherit team constitution principles before project
-      constitution update
-    condition: null
   before_specify:
   - extension: git
-    command: speckit.git.feature
+    command: git.feature
     enabled: true
     optional: false
     prompt: Execute speckit.git.feature?
     description: Create feature branch before specification
     condition: null
   - extension: team-ai-directives
-    command: adlc.team-ai-directives.discover
+    command: team.discover
     enabled: true
     optional: false
+    priority: 10
     prompt: Execute adlc.team-ai-directives.discover?
-    description: Auto-discover personas, rules, and examples from team-ai-directives
+    description: Discover team context before specification
     condition: null
   before_clarify:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit outstanding changes before clarification?
@@ -47,22 +40,23 @@ hooks:
     condition: null
   before_plan:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit outstanding changes before planning?
     description: Auto-commit before implementation planning
     condition: null
   - extension: team-ai-directives
-    command: adlc.team-ai-directives.discover
+    command: team.discover
     enabled: true
     optional: false
+    priority: 10
     prompt: Execute adlc.team-ai-directives.discover?
-    description: Auto-discover architecture patterns and implementation guidelines
+    description: Discover team context before planning
     condition: null
   before_tasks:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit outstanding changes before task generation?
@@ -70,7 +64,7 @@ hooks:
     condition: null
   before_implement:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit outstanding changes before implementation?
@@ -78,7 +72,7 @@ hooks:
     condition: null
   before_checklist:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit outstanding changes before checklist?
@@ -86,7 +80,7 @@ hooks:
     condition: null
   before_analyze:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit outstanding changes before analysis?
@@ -94,7 +88,7 @@ hooks:
     condition: null
   before_taskstoissues:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit outstanding changes before issue sync?
@@ -102,7 +96,7 @@ hooks:
     condition: null
   after_constitution:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit constitution changes?
@@ -110,7 +104,7 @@ hooks:
     condition: null
   after_specify:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit specification changes?
@@ -118,7 +112,7 @@ hooks:
     condition: null
   after_clarify:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit clarification changes?
@@ -126,7 +120,7 @@ hooks:
     condition: null
   after_plan:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit plan changes?
@@ -134,7 +128,7 @@ hooks:
     condition: null
   after_tasks:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit task changes?
@@ -142,7 +136,7 @@ hooks:
     condition: null
   after_implement:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit implementation changes?
@@ -150,7 +144,7 @@ hooks:
     condition: null
   after_checklist:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit checklist changes?
@@ -158,7 +152,7 @@ hooks:
     condition: null
   after_analyze:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit analysis results?
@@ -166,7 +160,7 @@ hooks:
     condition: null
   after_taskstoissues:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit after syncing issues?
@@ -174,7 +168,7 @@ hooks:
     condition: null
   before_task_execute:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit outstanding changes before task?
@@ -182,7 +176,7 @@ hooks:
     condition: null
   after_task_execute:
   - extension: git
-    command: speckit.git.commit
+    command: git.commit
     enabled: true
     optional: true
     prompt: Commit task changes?

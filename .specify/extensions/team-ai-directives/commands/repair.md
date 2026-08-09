@@ -5,6 +5,9 @@ scripts:
   ps: .specify/extensions/team-ai-directives/scripts/powershell/setup-team.ps1 -Json
 ---
 
+
+<!-- Extension: team-ai-directives -->
+<!-- Config: .specify/extensions/team-ai-directives/ -->
 ## User Input
 
 ```text
@@ -70,7 +73,7 @@ You are acting as an **Index Repair Specialist** ensuring team-ai-directives ind
 
 **Objective**: Resolve paths and validate infrastructure
 
-Run `{SCRIPT}` from repository root and parse JSON output:
+Run `.specify/extensions/team-ai-directives/scripts/bash/setup-team.sh --json` from repository root and parse JSON output:
 
 ```json
 {
@@ -207,7 +210,7 @@ Parse the CDR.md index table to build a mapping of `{relative_file_path → cdr_
 # Read existing CDR.md and extract file path -> CDR reference mappings
 CDR_LOOKUP=()
 if [[ -f "{TEAM_DIRECTIVES}/CDR.md" ]]; then
-    while IFS='|' read -r _ id module _ _ _ _; do
+    while IFS='|' read -r _ id module _ _ _ _ _; do
         id="${id// /}"
         module="${module// /}"
         if [[ -n "$id" && -n "$module" && "$id" =~ ^CDR- ]]; then
@@ -239,16 +242,24 @@ For each orphan:
 3. Compute the file's relative path from `TEAM_DIRECTIVES` (e.g., `context_modules/rules/style-guides/java/google_style_guide.md`) and look it up in `CDR_LOOKUP`:
    - If found, use the existing `cdr_ref` (e.g., `CDR-2026-023`)
    - If not found, set `cdr_ref: null`
-4. Set default metadata:
-   ```yaml
-   id: {generated-id}
-   cdr_ref: {from CDR_LOOKUP or null}  # Preserve existing CDR ref if available
-   created: {today}
-   modified: {today}
-   verified: {today}
-   age_days: 0
-   evidence: []
-   ```
+4. Generate `title` from filename (humanize the basename)
+5. Generate `description` from first paragraph or filename
+6. Generate `tags` from path segments (e.g., `rules/python/` → `[python]`)
+7. Set default metadata:
+    ```yaml
+    type: {context-type}
+    title: {generated-title}
+    description: {generated-description}
+    tags: {generated-tags}
+    timestamp: {today}T00:00:00Z
+    id: {generated-id}
+    cdr_ref: {from CDR_LOOKUP or null}  # Preserve existing CDR ref if available
+    created: {today}
+    modified: {today}
+    verified: {today}
+    age_days: 0
+    evidence: []
+    ```
 
 If `--dry-run`:
 ```markdown
@@ -279,7 +290,8 @@ Create index structure:
       "type": "Rule",
       "created": "2026-04-15",
       "verified": "2026-05-18",
-      "age_days": 33
+      "age_days": 33,
+      "descriptor": "Python error handling patterns and best practices"
     }
   ],
   "orphans": [
@@ -390,10 +402,10 @@ Context Directive Records (CDRs) track decisions about contributing context modu
 
 ## CDR Index
 
-| ID | Target Module | Type | Status | Created | Verified | Age |
-|----|---------------|------|--------|---------|----------|-----|
-| CDR-2026-001 | context_modules/rules/python/error-handling.md | Rule | Accepted | 2026-04-15 | 2026-05-18 | 33d |
-| rule-python-new-pattern | context_modules/rules/python/new-pattern.md | Rule | Auto-generated | 2026-05-22 | 2026-05-22 | 0d |
+| ID | Target Module | Type | Status | Created | Verified | Age | Descriptor |
+|----|---------------|------|--------|---------|----------|-----|------------|
+| CDR-2026-001 | context_modules/rules/python/error-handling.md | Rule | Accepted | 2026-04-15 | 2026-05-18 | 33d | Python error handling patterns and best practices |
+| rule-python-new-pattern | context_modules/rules/python/new-pattern.md | Rule | Auto-generated | 2026-05-22 | 2026-05-22 | 0d | (auto-generated — edit descriptor at first publish) |
 
 **Stats**: {N} entries | Last Updated: {date}
 
@@ -415,6 +427,9 @@ Context Directive Records (CDRs) track decisions about contributing context modu
 
 ### Context Type
 Rule
+
+### Descriptor
+{One-line "when to use" summary derived from file content or frontmatter description. This becomes the search surface for the `team.discover` command.}
 
 ### Evidence
 {From YAML frontmatter}
@@ -488,7 +503,7 @@ EOF
 **Objective**: Present repair results
 
 ```markdown
-## LevelUp Repair Summary
+## Team Repair Summary
 
 **Date**: {date}
 **Team Directives**: {path}

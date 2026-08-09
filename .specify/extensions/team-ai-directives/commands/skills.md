@@ -1,10 +1,14 @@
 ---
 description: Browse and install team skills from team-ai-directives knowledge base
+model-invocation: true
 scripts:
   sh: .specify/extensions/team-ai-directives/scripts/bash/setup-team.sh --json
   ps: .specify/extensions/team-ai-directives/scripts/powershell/setup-team.ps1 -Json
 ---
 
+
+<!-- Extension: team-ai-directives -->
+<!-- Config: .specify/extensions/team-ai-directives/ -->
 ## User Input
 
 ```text
@@ -17,7 +21,16 @@ Browse available skills from the team-ai-directives knowledge base and install s
 
 ## Setup
 
-Read `.specify/init-options.json` to get the team-ai-directives path:
+Read the file `.specify/init-options.json` directly. Do NOT use glob, find,
+or any file-search tool to locate it — search tools may silently skip
+dotfile-prefixed path segments. Read the file at the exact relative path
+`.specify/init-options.json` from the current working directory.
+
+If that read fails (file not found), walk up parent directories by reading
+`../.specify/init-options.json`, then `../../.specify/init-options.json`,
+and so on — up to 4 levels. Stop at the first successful read.
+
+From the JSON, extract the `team_ai_directives` field:
 
 ```json
 {
@@ -35,7 +48,7 @@ Run: specify init --team-ai-directives <path-or-url>
 
 ### Step 1: Read Skills Manifest
 
-Read `{TEAM_AI_DIRECTIVES}/.skills.json` and parse the `skills` section. Group by category:
+Read `<project_root>/.skills.json` (project-root manifest) and `{TEAM_AI_DIRECTIVES}/.skills.json` (team-ai-directives manifest). Merge both, with project-root entries taking precedence. Parse the `skills` section. Group by category:
 
 | Category | Description | Auto-installed? |
 |----------|-------------|-----------------|

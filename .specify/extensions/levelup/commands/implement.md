@@ -40,11 +40,11 @@ Compile accepted CDRs into a **draft PR** to the team-ai-directives repository. 
 
 **⚠️ CRITICAL**: You must create ALL of the above. Do NOT create CDR.md first and skip the actual module files.
 
-**MCP Integration**:
+**Git Extension Integration**:
 
-This command uses MCP tools for Git operations:
-- `create_pull_request` / `create_merge_request` (GitHub/GitLab)
-- If MCP unavailable, provides manual instructions
+This command delegates Git operations to the git extension:
+- `git.commit --message` — Commit changes with explicit message
+- `git.publish` — Push branch and create PR (GitHub) or MR (GitLab)
 
 ## Role & Context
 
@@ -324,7 +324,7 @@ cd "$TEAM_DIRECTIVES"
 
 if [ ! -f "AGENTS.md" ]; then
   echo "Creating AGENTS.md from template..."
-  cp ".specify/extensions/team-ai-directives/templates/agents-template.md" "AGENTS.md"
+  cp "{TEAM_DIRECTIVES}/templates/agents-template.md" "AGENTS.md"
   echo "✅ AGENTS.md created"
 else
   echo "✅ AGENTS.md already exists"
@@ -338,6 +338,11 @@ fi
 For each CDR that passed signal gate, create/update the target file with YAML frontmatter and verification metadata.
 
 **Metadata Variables**:
+- `{type}`: OKF concept type (Rule, Persona, Example, Skill, Constitution)
+- `{title}`: Human-readable display name
+- `{description}`: One-line summary
+- `{tags}`: YAML list of categorization tags
+- `{timestamp}`: ISO 8601 datetime (YYYY-MM-DDTHH:MM:SSZ)
 - `{id}`: Unique identifier (e.g., `rule-python-error-handling`)
 - `{cdr_ref}`: Original CDR ID (e.g., `CDR-2026-001`)
 - `{created}`: Evidence date (YYYY-MM-DD)
@@ -350,6 +355,11 @@ For each CDR that passed signal gate, create/update the target file with YAML fr
 **Rules** (`context_modules/rules/{domain}/{file}.md`):
 ```markdown
 ---
+type: Rule
+title: {title}
+description: {description}
+tags: {tags}
+timestamp: {timestamp}
 id: {id}
 cdr_ref: {cdr_ref}
 created: {created}
@@ -393,6 +403,11 @@ Date: {modified}
 **Personas** (`context_modules/personas/{file}.md`):
 ```markdown
 ---
+type: Persona
+title: {title}
+description: {description}
+tags: {tags}
+timestamp: {timestamp}
 id: {id}
 cdr_ref: {cdr_ref}
 created: {created}
@@ -423,6 +438,11 @@ Date: {modified}
 **Examples** (`context_modules/examples/{category}/{file}.md`):
 ```markdown
 ---
+type: Example
+title: {title}
+description: {description}
+tags: {tags}
+timestamp: {timestamp}
 id: {id}
 cdr_ref: {cdr_ref}
 created: {created}
@@ -456,6 +476,11 @@ Date: {modified}
 Create new constitution file:
 ```markdown
 ---
+type: Constitution
+title: {title}
+description: {description}
+tags: {tags}
+timestamp: {timestamp}
 id: {id}
 cdr_ref: {cdr_ref}
 created: {created}
@@ -465,9 +490,6 @@ age_days: {age_days}
 evidence:
   principles:
     - name: {principle_1_name}
-      source: {pattern_source}
-      evidence: {file_paths}
-    - name: {principle_2_name}
       source: {pattern_source}
       evidence: {file_paths}
 ---
@@ -605,9 +627,9 @@ Context Directive Records tracking approved contributions to team-ai-directives.
 
 ## CDR Index
 
-| ID | Target Module | Type | Status | Created | Verified | Age |
-|----|---------------|------|--------|---------|----------|-----|
-| CDR-001 | context_modules/rules/python/error-handling.md | Rule | Accepted | 2026-04-15 | 2026-05-18 | 33d |
+| ID | Target Module | Type | Status | Created | Verified | Age | Descriptor |
+|----|---------------|------|--------|---------|----------|-----|------------|
+| CDR-001 | context_modules/rules/python/error-handling.md | Rule | Accepted | 2026-04-15 | 2026-05-18 | 33d | Python error handling patterns and best practices |
 
 **Stats**: {N} CDRs | Last Updated: {date}
 
@@ -637,6 +659,10 @@ Context Directive Records tracking approved contributions to team-ai-directives.
 ### Context Type
 
 Rule | Persona | Example | Constitution Creation | Constitution Amendment
+
+### Descriptor
+
+One-line "when to use" summary. This becomes the search surface in the CDR Index table for the `adlc.team-ai-directives.discover` command. Derive from the `### Context` and `### Decision` sections — e.g., "SQL injection prevention patterns for all languages" or "Java Google style guide conventions for new projects".
 
 ### Signal Gate
 
@@ -685,18 +711,65 @@ git status --porcelain
 
 **If any check fails, you MUST go back and create the missing files before proceeding.**
 
-### Phase 4: Commit Changes
+### Phase 4: Record Execution Trace
 
-**Objective**: Stage and commit all changes
+**Objective**: Preserve execution trace for curation agent consumption
 
-#### Step 1: Stage Files
+Copy the execution log as a trace file to `{REPO_ROOT}/traces/`:
 
 ```bash
-cd "$TEAM_DIRECTIVES"
-git add context_modules/ skills/ .skills.json CDR.md AGENTS.md
+mkdir -p "{REPO_ROOT}/traces"
+TRACE_FILE="{REPO_ROOT}/traces/$(date -u +%Y%m%d-%H%M%S)-${PROJECT_NAME}-levelup-implement.md"
 ```
 
-#### Step 2: Generate Commit Message
+Write the trace content:
+
+```markdown
+# LevelUp Implement Trace
+
+**Timestamp**: {timestamp}
+**Project**: {project-name}
+**Branch**: {BRANCH_NAME}
+**Team Directives**: {TEAM_DIRECTIVES}
+
+## Summary
+
+- **CDRs Implemented**: {N}
+- **CDRs Skipped (Signal Gate)**: {M}
+- **Skills Published**: {S}
+- **Target Branch**: {BRANCH_NAME} → main
+
+## CDRs Implemented
+
+| CDR | Type | Target Module |
+|-----|------|---------------|
+| CDR-{N} | {type} | {module} |
+
+## Evidence
+
+- Project: {project-repo-url}
+- Implementation branch: {BRANCH_NAME}
+```
+
+After writing, optionally stage it:
+
+```bash
+cd "{REPO_ROOT}"
+git add traces/
+```
+
+### Phase 5: Commit and Publish
+
+**Objective**: Commit changes in team-ai-directives and create PR/MR using git extension commands
+
+#### Step 1: Commit with `git.commit --message`
+
+Use the git extension command with an explicit message:
+
+- **slash command**: `git.commit --message "Add context modules from {project-name}"`
+- **hook equivalent**: `.specify/extensions/git/scripts/bash/auto-commit.sh --message "Add context modules from {project-name}" after_implement`
+
+Generate the commit message:
 
 ```
 Add context modules from {project-name}
@@ -711,23 +784,19 @@ Skills added:
 Source: {project-repo-url}
 ```
 
-#### Step 3: Commit
+#### Step 2: Publish with `git.publish`
 
-```bash
-git commit -m "{commit-message}"
-```
+Use the git extension command to push and create PR/MR:
 
-### Phase 4: Push and Create PR
+- **slash command**: `git.publish --title "Add context modules from {project-name}" [--draft]`
+- **script equivalent**: `.specify/extensions/git/scripts/bash/publish.sh --title "Add context modules from {project-name}" [--draft]`
 
-**Objective**: Push branch and create PR
+The command accepts:
+- `--draft` — Create as draft PR (default unless `--ready` flag)
+- `--title "..."` — PR title (generated from branch name if absent)
+- `--body "..."` — PR description
 
-#### Step 1: Push Branch
-
-```bash
-git push -u origin "$BRANCH_NAME"
-```
-
-#### Step 2: Generate PR Description
+**PR Body Template**:
 
 ```markdown
 ## Summary
@@ -770,37 +839,14 @@ These contributions were discovered and validated through:
 - Branch: {branch-name}
 ```
 
-#### Step 3: Create PR via MCP
+#### Step 3: Stage Trace File (in source repo)
 
-Use MCP tools if available:
-
-```
-Tool: create_pull_request (GitHub) or create_merge_request (GitLab)
-Parameters:
-  - title: "Add context modules from {project-name}"
-  - body: {PR description}
-  - source_branch: "{BRANCH_NAME}"
-  - target_branch: "main"
-  - draft: true (unless --ready flag)
+```bash
+cd "{REPO_ROOT}"
+git add traces/
 ```
 
-If MCP unavailable, provide manual instructions:
-
-```markdown
-### Manual PR Creation
-
-MCP tools not available. Create PR manually:
-
-1. Go to: {team-ai-directives repo URL}
-2. Create PR from branch: `{BRANCH_NAME}`
-3. Target: `main`
-4. Title: "Add context modules from {project-name}"
-5. Body: {copy PR description above}
-```
-
-### Phase 5: Summary
-
-**Objective**: Present implementation results
+### Phase 6: Summary
 
 **Objective**: Present implementation results
 
@@ -817,9 +863,9 @@ MCP tools not available. Create PR manually:
 |-----------|--------|
 | Branch created | `{BRANCH_NAME}` |
 | Files changed | {N} |
-| Commit | `{commit-sha}` |
-| Push | Success |
-| PR | {PR-URL or "Manual instructions provided"} |
+| Commit | via `git.commit --message` |
+| Push + PR | via `git.publish` |
+| Trace | `traces/{trace-file}` |
 
 ### CDRs Implemented
 
@@ -858,7 +904,7 @@ MCP tools not available. Create PR manually:
    ```
 ```
 
-### Phase 6: Cleanup (when NOT configured)
+### Phase 7: Cleanup (when NOT configured)
 
 **When team-ai-directives is NOT configured:**
 

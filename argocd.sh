@@ -4,13 +4,14 @@
 # Port Allocation Table (single source of truth)
 # Service         | Host   | Cluster | Service | Container | TLS | Defined In
 # ----------------|--------|---------|---------|-----------|-----|-----------
-# ArgoCD HTTP     | 8081   | 8081    | 8081    | 8080      | no  | argocd.sh (k3d --port, svc patch)
-# ArgoCD HTTPS    | 8443   | 8443    | 8443    | 443       | yes | argocd.sh (k3d --port, svc patch)
-# Go Server       | 8090   | 8090    | 8090    | 8090      | no  | argocd.sh (k3d --port), deployment.yaml
+# Traefik ingress | 80     | 80      | n/a     | n/a       | no  | k3d-config.yaml
+# HTTPS ingress   | 443    | 443     | n/a     | n/a       | yes | k3d-config.yaml
+# ArgoCD          | 80     | 80      | 8443    | 443       | no  | argo-ingress.yaml (host argocd.lab)
+# Apps            | 80     | 80      | <app>   | <app>     | no  | <repo>/k8s/ingress.yaml (host <app>.lab)
 # Registry        | 50000  | 5000    | n/a     | n/a       | no  | argocd.sh (k3d registry create)
 #
-# Reserved host port ranges: 8081, 8443, 8090 (apps); 50000-50004 (registry fallback)
-# Note: Traefik keeps its default 80/443 — no patching needed
+# Reserved host ports: 80, 443 (ingress); 50000-50004 (registry fallback)
+# Note: Traefik terminates on the k3d loadbalancer; apps are path-routed via Ingress
 
 # Usage
 if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
@@ -72,7 +73,7 @@ install_tool() {
 install_tool k3d
 
 # Check all mapped host ports before binding
-MAPPED_PORTS=(8081 8443 8090)
+MAPPED_PORTS=(80 443)
 check_mapped_ports() {
   for p in "${MAPPED_PORTS[@]}"; do
     if port_in_use "$p"; then
@@ -175,12 +176,13 @@ sleep 30
 admin_pass=ChangeMe
 
 # Login with initial password (first run) or admin password (re-run)
-if argocd login localhost:8081 --username admin --password $init_pass --insecure 2>/dev/null; then
+# --port-forward: argocd-server has no host port binding; reach it via kubectl
+if argocd login localhost:8081 --port-forward --username admin --password $init_pass --insecure 2>/dev/null; then
   echo Set admin password to $admin_pass
   echo Change admin password
   argocd account update-password --current-password $init_pass --new-password $admin_pass
 else
-  argocd login localhost:8081 --username admin --password $admin_pass --insecure
+  argocd login localhost:8081 --port-forward --username admin --password $admin_pass --insecure
 fi
 
 # Create the app image

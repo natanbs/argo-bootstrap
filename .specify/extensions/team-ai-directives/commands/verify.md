@@ -2,6 +2,9 @@
 description: Verify team-ai-directives installation and health check
 ---
 
+
+<!-- Extension: team-ai-directives -->
+<!-- Config: .specify/extensions/team-ai-directives/ -->
 ## Goal
 
 Verify that team-ai-directives is properly installed and healthy.
@@ -59,6 +62,16 @@ Output: `[OK]` or `[FAIL]` with reason
      - `[WARN]` - Project constitution exists but missing team inheritance
 4. If project constitution doesn't exist:
    - `[INFO]` - Project constitution doesn't exist yet (first-time setup)
+
+### Check 7: OKF Type Field Presence
+
+1. Scan all `.md` files in `context_modules/` (excluding `index.md`, `log.md`)
+2. Parse YAML frontmatter from each file
+3. Verify `type` field is present and has a valid value:
+   - Valid types: `Constitution`, `Persona`, `Rule`, `Example`, `Skill`
+4. Output:
+   - `[OK]` - All concept files have valid `type` fields
+   - `[WARN]` - Some files missing `type` field (list files)
 
 ## Output
 

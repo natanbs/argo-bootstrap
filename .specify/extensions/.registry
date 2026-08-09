@@ -22,9 +22,9 @@
       "installed_at": "2026-06-10T09:23:43.488520+00:00"
     },
     "levelup": {
-      "version": "1.7.0",
+      "version": "1.10.0",
       "source": "local",
-      "manifest_hash": "sha256:e737fc68d6df4ca1a2e5e269c4bc43bd57e9a7a6aa2052ed2f12e7947409dbb4",
+      "manifest_hash": "sha256:deeb3680ddf8a15c1bfc64cbd6532942064e20222e87114503c04dde8417b2d6",
       "enabled": true,
       "priority": 10,
       "registered_commands": {
@@ -34,7 +34,6 @@
           "levelup.specify",
           "levelup.skill",
           "levelup.implement",
-          "levelup.trace",
           "levelup.validate"
         ]
       },
@@ -56,22 +55,24 @@
       "installed_at": "2026-06-10T09:23:46.133134+00:00"
     },
     "team-ai-directives": {
-      "version": "1.7.8",
+      "version": "4.3.3",
       "source": "local",
-      "manifest_hash": "sha256:e4e1bae369b7760bd35a5ba9a61cf0fc472e3808d2ff2668189a1f0e992d9e07",
+      "manifest_hash": "sha256:02a0c8b43defb639a9dc775f43dc2fabdad64b432f82e09321250230953c86f1",
       "enabled": true,
       "priority": 1,
       "registered_commands": {
         "opencode": [
-          "team.verify",
+          "team.boot",
           "team.discover",
-          "team.constitution",
+          "team.curate",
+          "team.evolve",
+          "team.repair",
           "team.skills",
-          "team.repair"
+          "team.verify"
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-06-10T10:03:05.063468+00:00"
+      "installed_at": "2026-08-05T22:19:28.345280+00:00"
     }
   }
 }

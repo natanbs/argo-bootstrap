@@ -4,10 +4,12 @@ metadata:
   name: argocd-server-ingress
   namespace: argocd
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    traefik.ingress.kubernetes.io/service.server-scheme: https
+    traefik.ingress.kubernetes.io/service.servers-transport.insecureskipverify: "true"
 spec:
+  ingressClassName: traefik
   rules:
-  - host: localhost
+  - host: argocd.lab
     http:
       paths:
       - path: /
@@ -17,8 +19,4 @@ spec:
             name: argocd-server
             port:
               number: 8443
-  tls:
-  - hosts:
-    - localhost
-    secretName: argocd-tls
 

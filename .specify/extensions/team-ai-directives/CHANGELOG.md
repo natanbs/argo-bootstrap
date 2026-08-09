@@ -1,40 +1,25 @@
 # Changelog
 
-All notable changes to the Team AI Directives extension will be documented in this file.
+## 4.3.1 - 2026-07-15
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+- Version bump; no functional changes from `4.3.0`.
 
-## [1.7.8] - 2026-05-29
+## 4.3.0 - 2026-07-15
 
-### Added
+- **Add `team.boot` command**: New bootstrap command (`adlc.team-ai-directives.boot`, alias `team.boot`) with `model-invocation: true` frontmatter. The CLI auto-generates a `team-boot` skill from this command during install, so it appears in the agent's available skills list and can be self-triggered by the model on any interaction — not just spec workflow commands.
+- **Anti-pattern table**: The boot command includes an anti-pattern table (adapted from the superpowers framework) that explicitly counters every rationalization the model might use to skip the skill check (e.g., "Let me explore the codebase first" → "Skills tell you HOW to explore. Check first."). This addresses the observed failure where agents skipped team-discover on plain user messages because the AGENTS.md directive was ambient context overridden by procedural command outlines.
+- **Handoff to team.discover**: `team.boot` hands off to `team.discover` for the actual CDR/personas/rules scanning.
+- **Strengthened AGENTS.md injection**: The `update-agent-context.sh/.ps1/.py` scripts now inject anti-pattern counter-rationalizations inline alongside the "Strict Compliance" directive, and tell the model to invoke the `team-boot` skill before responding.
 
-- **Repair command**: New `/team.repair` command for re-indexing CDR.md, .skills.json, and AGENTS.md
-  - Moved from LevelUp extension (`/levelup.repair` -> `/team.repair`)
-  - Paired with `/team.verify` for team-admin check-then-fix workflow
-  - Auto-fixes orphan files, missing metadata, and corrupted indexes
-- **setup-team.sh**: New setup script for team-ai-directives path resolution
-- **setup-team.ps1**: PowerShell equivalent of setup-team.sh
-- **agents-template.md**: Template for AGENTS.md generation (moved from LevelUp)
+## 4.2.0 - 2026-07-15
 
-### Fixed
+- **Register discovery hooks**: Add `hooks:` block to `extension.yml` declaring `before_specify` and `before_plan` hooks (both mandatory, `optional: false`) pointing at `adlc.team-ai-directives.discover`. This makes `register_hooks(manifest)` populate `extensions.yml` during install/update, so the spec workflow's pre-execution hook checks auto-invoke team-discover before `/spec.specify` and `/spec.plan`. Previously the `team.discover.md` command file documented these hooks but the manifest never declared them — a documentation/reality gap that left team context (personas, rules, examples, skills) undiscovered.
+- **Migration**: Existing workspaces should run `specify extension update team-ai-directives` to write the new hooks to `.specify/extensions.yml`.
 
-- **team.skills script path**: Fixed broken script reference pointing to non-existent path
-  - Was: `.specify/extensions/team-ai-directives/scripts/bash/setup-levelup.sh`
-  - Now: `.specify/extensions/team-ai-directives/scripts/bash/setup-team.sh`
+## 4.0.0 - 2026-07-09
 
-### Changed
-
-- `extension.yml`: Version bump to 1.7.8
-
-## [1.7.7] - 2026-05-29
-
-### Changed
-
-- Renamed `{KNOWLEDGE_BASE}` placeholder to `{TEAM_AI_DIRECTIVES}` in all commands
-
-## [1.7.6] - 2026-05-28
-
-### Added
-
-- Initial bundled version with verify, discover, constitution, and skills commands
+- Repackage team-ai-directives as a bundled spec-kit extension with governance commands and skills.
+- Move governance skills (`team-discover`, `team-curate`, `team-evolve`, `team-repair`, `team-skills`, `team-verify`) from the upstream KB repo into this extension.
+- Remove `team.constitution` command; constitution handling is now owned by the `agent-context` extension bootstrap.
+- Add handoff links between `team.discover`, `team.curate`, and `team.evolve`.
+- Modernize command aliases to `team.<verb>` form.
