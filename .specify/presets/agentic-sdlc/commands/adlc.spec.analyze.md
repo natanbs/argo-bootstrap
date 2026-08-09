@@ -1,20 +1,46 @@
 ---
 description: Perform cross-artifact consistency and quality analysis. Automatically detects pre vs post-implementation context based on project state.
 scripts:
-  sh: scripts/bash/check-prerequisites.sh --json --include-tasks
-  ps: scripts/powershell/check-prerequisites.ps1 -Json -IncludeTasks
+  sh: scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
+  ps: scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks
+  py: scripts/python/check_prerequisites.py --json --require-tasks --include-tasks
 ---
 
 ## MANDATORY: Pre-Execution Hooks
 
 **STOP. Before reading User Input or doing ANY other work, execute extension hooks.**
 
-1. If `.specify/extensions.yml` does not exist, state `No hooks file found` and skip to User Input.
-2. Read `.specify/extensions.yml` and find `hooks.before_analyze`.
-3. Skip any hook with `enabled: false`. Skip any hook with a non-empty `condition`.
+**Skill Check**: Review the available skills listed in your system context. If any skill applies to this task, invoke it immediately via the skill tool and wait for its output before proceeding. This step enforces the "Strict Compliance" directive in AGENTS.md.
+
+0. Determine `{REPO_ROOT}` by running `git rev-parse --show-toplevel 2>/dev/null`. If that fails, walk up from the current directory until you find a `.git` directory or `.specify/init-options.json` and use that parent as `{REPO_ROOT}`.
+1. If `{REPO_ROOT}/.specify/extensions.yml` does not exist, state `No hooks file found` and skip to User Input.
+   If the YAML cannot be parsed or is invalid, skip hook checking silently and continue normally.
+2. Read `{REPO_ROOT}/.specify/extensions.yml` and find `hooks.before_analyze`.
+3. Filter out hooks where `enabled` is explicitly `false`. Treat hooks without an `enabled` field as enabled by default. Skip any hook with a non-empty `condition` and leave condition evaluation to the HookExecutor implementation.
 4. For each remaining hook:
-   - **Mandatory** (`optional: false`): Read the command file for `{command}`. **First, read the extension's `extension.yml` manifest** and look up the `provides.commands` entry matching `{command}` to get the `file` field. Use that `file` path relative to the extension directory. If the manifest cannot be read, fall back to looking for `{command}.md` directly in the extension commands directory. Execute the command file's full instructions NOW before continuing.
-   - **Optional** (`optional: true`): Display the hook name, command, and description. Let the user decide.
+   - **Mandatory** (`optional: false`):
+      ```
+      ## Extension Hooks
+
+      **Automatic Pre-Hook**: {extension}
+      Executing: `/{command}`
+      EXECUTE_COMMAND: {command}
+
+      Wait for the result of the hook command before proceeding.
+      ```
+      After emitting the block above you MUST actually invoke the hook and wait for it to finish before continuing. Run it the same way you would run the command yourself in this agent/session (the invocation may differ from the literal `{command}` id shown above, e.g. a skills-mode agent runs it as `/skill:spec-...` or `$spec-...`). Emitting the block alone does not run the hook.
+   - **Optional** (`optional: true`):
+      ```
+      ## Extension Hooks
+
+      **Optional Hook**: {extension}
+      Command: `/{command}`
+      Description: {description}
+
+      Prompt: {prompt}
+      To execute: `/{command}`
+      ```
+      Let the user decide whether to execute the optional hook.
 5. State which hooks were executed, then proceed to User Input.
 
 ---
@@ -29,7 +55,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Goal
 
-Perform consistency and quality analysis across artifacts with automatic context detection:
+Perform consistency and quality analysis across artifacts with automatic context detection. This command **MUST run only after `__SPECKIT_COMMAND_TASKS__` has successfully produced a complete `tasks.md`**. Identify inconsistencies, duplications, ambiguities, and underspecified items across the three core artifacts (`spec.md`, `plan.md`, `tasks.md`) before implementation.
 
 **Auto-Detection Logic**:
 
@@ -51,7 +77,7 @@ This command adapts its behavior based on project state.
    - **Pre-implementation**: Comprehensive analysis with full validation
    - **Post-implementation**: Code-focused analysis with refinement recommendations
 
-**Constitution Authority**: The project constitution (`/memory/constitution.md`) is **non-negotiable** within this analysis scope. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle. If a principle itself needs to change, that must occur in a separate, explicit constitution update outside `__SPECKIT_COMMAND_ANALYZE__`.
+**Constitution Authority**: The project constitution (`{REPO_ROOT}/.specify/memory/constitution.md`) is **non-negotiable** within this analysis scope. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle. If a principle itself needs to change, that must occur in a separate, explicit constitution update outside `__SPECKIT_COMMAND_ANALYZE__`.
 
 ## Execution Steps
 
@@ -77,7 +103,6 @@ Determine analysis mode based on project state:
 Load only the minimal necessary context from each artifact:
 
 **From spec.md:**
-
 - Overview/Context
 - Functional Requirements
 - Success Criteria (measurable outcomes — e.g., performance, security, availability, user success, business impact)
@@ -85,14 +110,12 @@ Load only the minimal necessary context from each artifact:
 - Edge Cases (if present)
 
 **From plan.md:**
-
 - Architecture/stack choices
 - Data Model references
 - Phases
 - Technical constraints
 
 **From tasks.md:**
-
 - Task IDs
 - Descriptions
 - Phase grouping
@@ -100,8 +123,7 @@ Load only the minimal necessary context from each artifact:
 - Referenced file paths
 
 **From constitution:**
-
-- Load `/memory/constitution.md` for principle validation
+- Load `{REPO_ROOT}/.specify/memory/constitution.md` for principle validation
 
 ### 4. Build Semantic Models
 
@@ -119,34 +141,28 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 #### Pre-Implementation Detection Passes
 
 **A. Duplication Detection**
-
 - Identify near-duplicate requirements
 - Mark lower-quality phrasing for consolidation
 
 **B. Ambiguity Detection**
-
 - Flag vague adjectives (fast, scalable, secure, intuitive, robust) lacking measurable criteria
 - Flag unresolved placeholders (TODO, TKTK, ???, `<placeholder>`, etc.)
 
 **C. Underspecification**
-
 - Requirements with verbs but missing object or measurable outcome
 - User stories missing acceptance criteria alignment
 - Tasks referencing files or components not defined in spec/plan
 
 **D. Constitution Alignment**
-
 - Any requirement or plan element conflicting with a MUST principle
 - Missing mandated sections or quality gates from constitution
 
 **E. Coverage Gaps**
-
 - Requirements with zero associated tasks
 - Tasks with no mapped requirement/story
-- Success Criteria requiring buildable work (performance, security, availability) not reflected in tasks
+- Success Criteria requiring buildable work not reflected in tasks
 
 **F. Inconsistency**
-
 - Terminology drift (same concept named differently across files)
 - Data entities referenced in plan but absent in spec (or vice versa)
 - Task ordering contradictions (e.g., integration tasks before foundational setup tasks without dependency note)
@@ -155,25 +171,21 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 #### Post-Implementation Detection Passes
 
 **G. Documentation Drift**
-
 - Code artifacts not documented in spec/plan
 - Spec requirements not implemented
 - Implementation details not reflected in tasks
 
 **H. Implementation Quality**
-
 - Code follows project conventions
 - Error handling consistency
 - Test coverage alignment
 
 **I. Real-World Usage Gaps**
-
 - Missing error paths in implementation
 - Edge cases not handled
 - Performance bottlenecks
 
 **J. Refinement Opportunities**
-
 - Code patterns that could be simplified
 - Duplication that emerged during implementation
 - Architecture improvements suggested by actual usage
@@ -182,10 +194,12 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 
 Use this heuristic to prioritize findings:
 
-- **CRITICAL**: Violates constitution MUST, missing core spec artifact, or requirement with zero coverage that blocks baseline functionality
-- **HIGH**: Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion
-- **MEDIUM**: Terminology drift, missing non-functional task coverage, underspecified edge case
-- **LOW**: Style/wording improvements, minor redundancy not affecting execution order
+| Severity | Criteria |
+|----------|----------|
+| **CRITICAL** | Violates constitution MUST, missing core spec artifact, or requirement with zero coverage that blocks baseline functionality |
+| **HIGH** | Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion |
+| **MEDIUM** | Terminology drift, missing non-functional task coverage, underspecified edge case |
+| **LOW** | Style/wording improvements, minor redundancy not affecting execution order |
 
 ### 7. Produce Compact Analysis Report
 
@@ -209,7 +223,6 @@ Output a Markdown report (no file writes) with the following structure:
 **Unmapped Tasks:** (if any)
 
 **Metrics:**
-
 - Total Requirements
 - Total Tasks
 - Coverage % (requirements with >=1 task)
@@ -255,12 +268,40 @@ Ask the user: "Would you like me to suggest concrete remediation edits for the t
 
 {ARGS}
 
+## Done When
+
+- [ ] Cross-artifact analysis report produced with severity-graded findings
+- [ ] Extension hooks dispatched or skipped according to the rules above
+- [ ] Completion reported to user with findings summary and recommended next actions
+
+
 ## Post-Execution Hooks
 
-1. If `.specify/extensions.yml` does not exist, skip silently.
+**You MUST complete this section before reporting completion to the user.**
+
+1. If `{REPO_ROOT}/.specify/extensions.yml` does not exist, skip silently.
 2. Read `hooks.after_analyze`.
 3. Skip hooks with `enabled: false` or non-empty `condition`.
 4. For each remaining hook:
-   - **Mandatory** (`optional: false`): Read the command file for `{command}`. **First, read the extension's `extension.yml` manifest** and look up the `provides.commands` entry matching `{command}` to get the `file` field. Use that `file` path relative to the extension directory. If the manifest cannot be read, fall back to looking for `{command}.md` directly in the extension commands directory. Execute the command file's full instructions immediately.
-   - **Optional** (`optional: true`): Display hook info for user decision.
+   - **Mandatory** (`optional: false`):
+      ```
+      ## Extension Hooks
+
+      **Automatic Hook**: {extension}
+      Executing: `/{command}`
+      EXECUTE_COMMAND: {command}
+      ```
+      After emitting the block above you MUST actually invoke the hook and wait for it to finish before continuing. Run it the same way you would run the command yourself in this agent/session (the invocation may differ from the literal `{command}` id shown above, e.g. a skills-mode agent runs it as `/skill:spec-...` or `$spec-...`). Emitting the block alone does not run the hook.
+   - **Optional** (`optional: true`):
+      ```
+      ## Extension Hooks
+
+      **Optional Hook**: {extension}
+      Command: `/{command}`
+      Description: {description}
+
+      Prompt: {prompt}
+      To execute: `/{command}`
+      ```
+      Let the user decide whether to execute the optional hook.
 5. If no hooks registered, skip silently.

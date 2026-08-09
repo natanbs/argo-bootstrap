@@ -7,18 +7,44 @@ handoffs:
 scripts:
    sh: scripts/bash/check-prerequisites.sh --json --paths-only
    ps: scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly
+   py: scripts/python/check_prerequisites.py --json --paths-only
 ---
 
 ## MANDATORY: Pre-Execution Hooks
 
 **STOP. Before reading User Input or doing ANY other work, execute extension hooks.**
 
-1. If `.specify/extensions.yml` does not exist, state `No hooks file found` and skip to User Input.
-2. Read `.specify/extensions.yml` and find `hooks.before_clarify`.
-3. Skip any hook with `enabled: false`. Skip any hook with a non-empty `condition`.
+**Skill Check**: Review the available skills listed in your system context. If any skill applies to this task, invoke it immediately via the skill tool and wait for its output before proceeding. This step enforces the "Strict Compliance" directive in AGENTS.md.
+
+0. Determine `{REPO_ROOT}` by running `git rev-parse --show-toplevel 2>/dev/null`. If that fails, walk up from the current directory until you find a `.git` directory or `.specify/init-options.json` and use that parent as `{REPO_ROOT}`.
+1. If `{REPO_ROOT}/.specify/extensions.yml` does not exist, state `No hooks file found` and skip to User Input.
+   If the YAML cannot be parsed or is invalid, skip hook checking silently and continue normally.
+2. Read `{REPO_ROOT}/.specify/extensions.yml` and find `hooks.before_clarify`.
+3. Filter out hooks where `enabled` is explicitly `false`. Treat hooks without an `enabled` field as enabled by default. Skip any hook with a non-empty `condition` and leave condition evaluation to the HookExecutor implementation.
 4. For each remaining hook:
-   - **Mandatory** (`optional: false`): Read the command file for `{command}`. **First, read the extension's `extension.yml` manifest** and look up the `provides.commands` entry matching `{command}` to get the `file` field. Use that `file` path relative to the extension directory. If the manifest cannot be read, fall back to looking for `{command}.md` directly in the extension commands directory. Execute the command file's full instructions NOW before continuing.
-   - **Optional** (`optional: true`): Display the hook name, command, and description. Let the user decide.
+   - **Mandatory** (`optional: false`):
+      ```
+      ## Extension Hooks
+
+      **Automatic Pre-Hook**: {extension}
+      Executing: `/{command}`
+      EXECUTE_COMMAND: {command}
+
+      Wait for the result of the hook command before proceeding.
+      ```
+      After emitting the block above you MUST actually invoke the hook and wait for it to finish before continuing. Run it the same way you would run the command yourself in this agent/session (the invocation may differ from the literal `{command}` id shown above, e.g. a skills-mode agent runs it as `/skill:spec-...` or `$spec-...`). Emitting the block alone does not run the hook.
+   - **Optional** (`optional: true`):
+      ```
+      ## Extension Hooks
+
+      **Optional Hook**: {extension}
+      Command: `/{command}`
+      Description: {description}
+
+      Prompt: {prompt}
+      To execute: `/{command}`
+      ```
+      Let the user decide whether to execute the optional hook.
 5. State which hooks were executed, then proceed to User Input.
 
 ---
@@ -39,7 +65,7 @@ Note: This clarification workflow is expected to run (and be completed) BEFORE i
 
 ## Mission Brief Validation
 
-Before proceeding with clarification, validate that the spec has a complete Mission Brief.
+Before proceeding with clarification, validate that the spec has a complete and confirmed Mission Brief.
 
 **Mission Brief Fields** (in spec header):
 - **Goal**: One-sentence objective - core purpose
@@ -53,9 +79,44 @@ Before proceeding with clarification, validate that the spec has a complete Miss
 
 ### Required Behavior
 
-If any Mission Brief field is missing or empty, **block** and prompt user to provide it before proceeding:
-- Output the Mission Brief prompt template and wait for user input
-- Do NOT proceed until Mission Brief is complete
+**If any Mission Brief field is missing or contains placeholder text:**
+
+1. **Block** and prompt user to provide it before proceeding:
+   - Output the Mission Brief prompt template and wait for user input
+   - Do NOT proceed until Mission Brief is complete
+2. When user provides content, update the spec.md header with the provided values.
+3. Proceed to the confirmation step below.
+
+**If all Mission Brief fields are populated:**
+
+1. Display the current Mission Brief:
+
+   ```markdown
+   ## Mission Brief
+
+   **Goal**: {goal}
+
+   **Success Criteria**:
+   - {criterion 1}
+   - {criterion 2}
+
+   **Constraints**:
+   - {constraint 1}
+   ```
+
+2. Ask for confirmation:
+
+   ```
+   **Proceed with this Mission Brief?** (yes / no / adjust)
+   ```
+
+3. **STOP HERE** - Wait for explicit response.
+
+   - **yes**: Proceed to clarification questions.
+   - **adjust**: Ask what needs changing, update the Mission Brief fields in the spec header, re-display, ask again.
+   - **no**: Stop. Do not proceed to clarification. Recommend re-running `__SPECKIT_COMMAND_SPECIFY__` or revising the feature description.
+
+4. **Do NOT proceed to clarification until Mission Brief is confirmed with "yes".**
 
 ### Mission Brief Prompt Template
 
@@ -78,23 +139,17 @@ Before proceeding with clarification, the spec needs a Mission Brief:
 Please provide the Mission Brief fields before proceeding.
 ```
 
-### Recording Mission Brief
-
-When user provides Mission Brief content:
-1. Update the spec.md header with the provided values
-2. Replace placeholder text with actual content
-3. Save the spec file
-4. Proceed to clarification
-
 Execution steps:
 
 1. Run `{SCRIPT}` from repo root **once** (combined `--json --paths-only` mode / `-Json -PathsOnly`). Parse minimal JSON payload fields:
    - `FEATURE_DIR`
    - `FEATURE_SPEC`
    - If JSON parsing fails, abort and instruct user to re-run `__SPECKIT_COMMAND_SPECIFY__` or verify feature branch environment.
-   - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot'.
+   - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
-2. Load the current spec file. Perform a structured ambiguity & coverage scan using this taxonomy. For each category, mark status: Clear / Partial / Missing. Produce an internal coverage map used for prioritization (do not output raw map unless no questions will be asked).
+2. **IF EXISTS**: Load `{REPO_ROOT}/.specify/memory/constitution.md` for project principles and governance constraints. Constitution MUST violations are automatically CRITICAL and must be resolved before proceeding to planning.
+
+3. Load the current spec file. Perform a structured ambiguity & coverage scan using this taxonomy. For each category, mark status: Clear / Partial / Missing. Produce an internal coverage map used for prioritization (do not output raw map unless no questions will be asked).
 
    Functional Scope & Behavior:
    - Core user goals & success criteria
@@ -150,7 +205,7 @@ Execution steps:
    - Clarification would not materially change implementation or validation strategy
    - Information is better deferred to planning phase (note internally)
 
-3. Generate (internally) a prioritized queue of candidate clarification questions (maximum 5). Do NOT output them all at once. Apply these constraints:
+4. Generate (internally) a prioritized queue of candidate clarification questions (maximum 5). Do NOT output them all at once. Apply these constraints:
    - Maximum of 5 total questions across the whole session.
    - Each question must be answerable with EITHER:
       - A short multiple‑choice selection (2–5 distinct, mutually exclusive options), OR
@@ -161,33 +216,33 @@ Execution steps:
    - Favor clarifications that reduce downstream rework risk or prevent misaligned acceptance tests.
    - If more than 5 categories remain unresolved, select the top 5 by (Impact * Uncertainty) heuristic.
 
-4. Sequential questioning loop (interactive):
-    - Present EXACTLY ONE question at a time.
-    - **CRITICAL**: You MUST output the actual question text BEFORE showing any options or recommendations. The user should see the question clearly stated first.
-    - For multiple‑choice questions:
-       - **First, clearly state the question** being asked (e.g., "**Question**: How should the CLI authenticate with the API?")
-       - **You MUST output the question text BEFORE any recommendation or options table**
-       - **Analyze all options** and determine the **most suitable option** based on:
-         - Best practices for the project type
-         - Common patterns in similar implementations
-         - Risk reduction (security, performance, maintainability)
-         - Alignment with any explicit project goals or constraints visible in the spec
-      - Present your **recommended option prominently** at the top with clear reasoning (1-2 sentences explaining why this is the best choice).
-      - Format as: `**Recommended:** Option [X] - <reasoning>`
+5. Sequential questioning loop (interactive):
+   - Present EXACTLY ONE question at a time.
+   - **Question writing quality (applies to every question, MC or short-answer):**
+      - Lead with `**Question:**` followed by a full interrogative that ends with `?`. The question text before the `?` must make sense on its own.
+      - NEVER use a topic label, section heading, or requirement id as the question itself. For example, `Acceptance device/runtime matrix (FR-023)` is INVALID — it is a label, not a question.
+      - After the `?`, the only permitted suffix is an optional parenthesized requirement/question id. Exact format: `**Question:** <interrogative>?` or `**Question:** <interrogative>? (FR-023)`. Never put the id before the `?`, and never use the id (alone or with a topic label) as the whole prompt.
+      - Immediately after the question line, add one plain-language "Why it matters" sentence (the stake for acceptance or shipping) before the recommendation/options.
+      - Use everyday wording; introduce jargon only if defined in the same sentence. Self-check: a reader who does not know Spec Kit must be able to answer from the Question line alone. Terse is fine; cryptic labels are not.
+   - For multiple‑choice questions:
+      - **Analyze all options** and determine the **most suitable option** based on:
+        - Best practices for the project type
+        - Common patterns in similar implementations
+        - Risk reduction (security, performance, maintainability)
+        - Alignment with any explicit project goals or constraints visible in the spec
+      - Present your recommended option prominently at the top with clear reasoning (1-2 sentences explaining why this is the best choice): `**Recommended:** Option [X] - <reasoning>`
       - Then render all options as a Markdown table:
 
-      | Option | Description |
-      |--------|-------------|
-      | A | <Option A description> |
-      | B | <Option B description> |
-      | C | <Option C description> (add D/E as needed up to 5) |
-      | Short | Provide a different short answer (<=5 words) (Include only if free-form alternative is appropriate) |
+        | Option | Description |
+        |--------|-------------|
+        | A | <Option A description> |
+        | B | <Option B description> |
+        | C | <Option C description> (add D/E as needed up to 5) |
+        | Short | Provide a different short answer (<=5 words) (Include only if free-form alternative is appropriate) |
 
-- After the table, add: `You can reply with the option letter (e.g., "A"), accept the recommendation by saying "yes" or "recommended", or provide your own short answer.`
-    - For short‑answer style (no meaningful discrete options):
-       - **First, clearly state the question** being asked (e.g., "**Question**: What naming convention should be used?")
-       - Provide your **suggested answer** based on best practices and context.
-      - Format as: `**Suggested:** <your proposed answer> - <brief reasoning>`
+      - After the table, add: `You can reply with the option letter (e.g., "A"), accept the recommendation by saying "yes" or "recommended", or provide your own short answer.`
+   - For short‑answer style (no meaningful discrete options):
+      - Provide your **suggested answer** based on best practices and context: `**Suggested:** <your proposed answer> - <brief reasoning>`
       - Then output: `Format: Short answer (<=5 words). You can accept the suggestion by saying "yes" or "suggested", or provide your own answer.`
    - After the user answers:
       - If the user replies with "yes", "recommended", or "suggested", use your previously stated recommendation/suggestion as the answer.
@@ -201,7 +256,7 @@ Execution steps:
    - Never reveal future queued questions in advance.
    - If no valid questions exist at start, immediately report no critical ambiguities.
 
-5. Integration after EACH accepted answer (incremental update approach):
+6. Integration after EACH accepted answer (incremental update approach):
    - Maintain in-memory representation of the spec (loaded once at start) plus the raw file contents.
    - For the first integrated answer in this session:
       - Ensure a `## Clarifications` section exists (create it just after the highest-level contextual/overview section per the spec template if missing).
@@ -209,7 +264,7 @@ Execution steps:
    - Append a bullet line immediately after acceptance: `- Q: <question> → A: <final answer>`.
    - Then immediately apply the clarification to the most appropriate section(s):
       - Functional ambiguity → Update or add a bullet in Functional Requirements.
-      - User interaction / actor distinction → Update User Stories or Actors subsection (if present) with clarified role, constraint, or scenario.
+      - User interaction / actor distinction → Update User Stories or Actors subsection with clarified role, constraint, or scenario.
       - Data shape / entities → Update Data Model (add fields, types, relationships) preserving ordering; note added constraints succinctly.
       - Non-functional constraint → Add/modify measurable criteria in Success Criteria > Measurable Outcomes (convert vague adjective to metric or explicit target).
       - Edge case / negative flow → Add a new bullet under Edge Cases / Error Handling (or create such subsection if template provides placeholder for it).
@@ -219,7 +274,7 @@ Execution steps:
    - Preserve formatting: do not reorder unrelated sections; keep heading hierarchy intact.
    - Keep each inserted clarification minimal and testable (avoid narrative drift).
 
-6. Validation (performed after EACH write plus final pass):
+7. Validation (performed after EACH write plus final pass):
    - Clarifications session contains exactly one bullet per accepted answer (no duplicates).
    - Total asked (accepted) questions ≤ 5.
    - Updated sections contain no lingering vague placeholders the new answer was meant to resolve.
@@ -227,16 +282,28 @@ Execution steps:
    - Markdown structure valid; only allowed new headings: `## Clarifications`, `### Session YYYY-MM-DD`.
    - Terminology consistency: same canonical term used across all updated sections.
 
-7. Write the updated spec back to `FEATURE_SPEC`.
+8. Write the updated spec back to `FEATURE_SPEC`.
 
-8. Report completion:
+9. **Spec Quality Checklist re-validation (IF EXISTS)**:
+   - If `FEATURE_DIR/checklists/requirements.md` exists, re-validate the spec against it:
+     1. Identify all GitHub task-list checkbox lines (`- [ ]`, `- [x]`, `- [X]`, case-insensitive, tolerant of nested whitespace, outside code fences).
+     2. Record a before-snapshot of each checkbox marker state and its item text.
+     3. Re-evaluate each checklist item against the updated spec.
+     4. Toggle `[ ]` ↔ `[x]` only when the state actually changes; preserve existing case to avoid cosmetic diffs.
+     5. Save the checklist file, modifying only checkbox markers whose state changed.
+     6. Compute three lists: Newly passing, Regressions, Still unchecked.
+     7. Record the before/after pass counts (e.g., "12/16 → 15/16").
+   - If `requirements.md` does not exist, skip this step silently.
+
+10. Report completion:
    - Number of questions asked & answered.
    - Path to updated spec.
    - Sections touched (list names).
    - Coverage summary table listing each taxonomy category with Status: Resolved (was Partial/Missing and addressed), Deferred (exceeds question quota or better suited for planning), Clear (already sufficient), Outstanding (still Partial/Missing but low impact).
-   - **Mission Brief Status**: Complete / Required (if still needed)
-   - If any Outstanding or Deferred remain, recommend whether to proceed to `__SPECKIT_COMMAND_PLAN__` or run `__SPECKIT_COMMAND_CLARIFY__` again later post-plan.
-   - Suggested next command.
+    - **Mission Brief Status**: Complete / Required (if still needed)
+    - **Spec quality checklist status**: If `requirements.md` was re-validated, show the before/after pass counts (e.g., "12/16 → 15/16") and list any items that changed state — both newly checked (regressions are rare here) and any still unchecked. If any items remain unchecked, list them as areas needing attention.
+    - If any Outstanding or Deferred remain, recommend whether to proceed to `__SPECKIT_COMMAND_PLAN__` or run `__SPECKIT_COMMAND_CLARIFY__` again later post-plan.
+    - Suggested next command.
 
 Behavior rules:
 
@@ -250,12 +317,41 @@ Behavior rules:
 
 Context for prioritization: {ARGS}
 
+## Done When
+
+- [ ] Spec ambiguities identified and integrated into `FEATURE_SPEC`
+- [ ] Spec quality checklist re-validated (if `requirements.md` exists)
+- [ ] Extension hooks dispatched or skipped according to the rules above
+- [ ] Completion reported to user with questions asked, sections touched, and checklist status
+
+
 ## Post-Execution Hooks
 
-1. If `.specify/extensions.yml` does not exist, skip silently.
+**You MUST complete this section before reporting completion to the user.**
+
+1. If `{REPO_ROOT}/.specify/extensions.yml` does not exist, skip silently.
 2. Read `hooks.after_clarify`.
 3. Skip hooks with `enabled: false` or non-empty `condition`.
 4. For each remaining hook:
-   - **Mandatory** (`optional: false`): Read the command file for `{command}`. **First, read the extension's `extension.yml` manifest** and look up the `provides.commands` entry matching `{command}` to get the `file` field. Use that `file` path relative to the extension directory. If the manifest cannot be read, fall back to looking for `{command}.md` directly in the extension commands directory. Execute the command file's full instructions immediately.
-   - **Optional** (`optional: true`): Display hook info for user decision.
+   - **Mandatory** (`optional: false`):
+      ```
+      ## Extension Hooks
+
+      **Automatic Hook**: {extension}
+      Executing: `/{command}`
+      EXECUTE_COMMAND: {command}
+      ```
+      After emitting the block above you MUST actually invoke the hook and wait for it to finish before continuing. Run it the same way you would run the command yourself in this agent/session (the invocation may differ from the literal `{command}` id shown above, e.g. a skills-mode agent runs it as `/skill:spec-...` or `$spec-...`). Emitting the block alone does not run the hook.
+   - **Optional** (`optional: true`):
+      ```
+      ## Extension Hooks
+
+      **Optional Hook**: {extension}
+      Command: `/{command}`
+      Description: {description}
+
+      Prompt: {prompt}
+      To execute: `/{command}`
+      ```
+      Let the user decide whether to execute the optional hook.
 5. If no hooks registered, skip silently.
