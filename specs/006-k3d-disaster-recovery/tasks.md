@@ -134,13 +134,13 @@
 
 ### Implementation for User Story 4
 
-- [ ] T049 [SYNC] [US4] Implement database backup hook runner in k3d-dr/hooks/db-backup.sh (FR-008)
-- [ ] T050 [SYNC] [US4] Implement database restore hook runner in k3d-dr/hooks/db-restore.sh (FR-008)
-- [ ] T051 [ASYNC] [US4] Implement hook timeout enforcement in k3d-dr/hooks/db-backup.sh (FR-008)
-- [ ] T052 [ASYNC] [US4] Implement hook mandatory/optional handling in k3d-dr/hooks/db-backup.sh (FR-049)
+- [x] T049 [SYNC] [US4] Implement database backup hook runner in k3d-dr/hooks/db-backup.sh (FR-008)
+- [x] T050 [SYNC] [US4] Implement database restore hook runner in k3d-dr/hooks/db-restore.sh (FR-008)
+- [x] T051 [ASYNC] [US4] Implement hook timeout enforcement in k3d-dr/hooks/db-backup.sh (FR-008)
+- [x] T052 [ASYNC] [US4] Implement hook mandatory/optional handling in k3d-dr/hooks/db-backup.sh (FR-049)
 - [ ] T053 [ASYNC] [US4] Implement hook checksum verification in k3d-dr/hooks/db-restore.sh
-- [ ] T054 [P] [ASYNC] [US4] Create example PostgreSQL backup hook in k3d-dr/hooks/examples/pg-backup.sh
-- [ ] T055 [P] [ASYNC] [US4] Create example PostgreSQL restore hook in k3d-dr/hooks/examples/pg-restore.sh
+- [x] T054 [P] [ASYNC] [US4] Create example PostgreSQL backup hook in k3d-dr/hooks/examples/pg-backup.sh
+- [x] T055 [P] [ASYNC] [US4] Create example PostgreSQL restore hook in k3d-dr/hooks/examples/pg-restore.sh
 
 **Checkpoint**: Database backup/restore working with native tools
 
