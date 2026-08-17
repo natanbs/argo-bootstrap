@@ -66,8 +66,8 @@
 - [x] T019 [P] [ASYNC] [US1] Implement k3d cluster delete in k3d-dr/lib/k3d.sh
 - [x] T020 [P] [ASYNC] [US1] Implement Kopia snapshot create in k3d-dr/lib/kopia.sh (FR-003)
 - [x] T021 [P] [ASYNC] [US1] Implement Kopia snapshot restore in k3d-dr/lib/kopia.sh
-- [ ] T022 [ASYNC] [US1] Implement cluster metadata collection in k3d-dr/lib/metadata.sh (FR-011)
-- [ ] T023 [ASYNC] [US1] Implement infrastructure app discovery under ~/projects/infra in k3d-dr/lib/discovery.sh (FR-016)
+- [x] T022 [ASYNC] [US1] Implement cluster metadata collection in k3d-dr/lib/metadata.sh (FR-011)
+- [x] T023 [ASYNC] [US1] Implement infrastructure app discovery under ~/projects/infra in k3d-dr/lib/discovery.sh (FR-016)
 - [x] T024 [ASYNC] [US1] Implement Kubernetes resource apply in k3d-dr/lib/kubernetes.sh (FR-016)
 - [x] T025 [ASYNC] [US1] Implement health check verification in k3d-dr/lib/health.sh (FR-034, FR-035)
 - [x] T026 [SYNC] [US1] Implement port offset application for k3d cluster in k3d-dr/lib/k3d.sh (FR-025, FR-038)
@@ -114,13 +114,13 @@
 - [x] T040 [ASYNC] [US3] Implement repository existence validation in k3d-dr/lib/config.sh (FR-010)
 - [x] T041 [ASYNC] [US3] Implement volume mount path consistency check in k3d-dr/lib/config.sh (FR-028)
 - [x] T041a [ASYNC] [US3] Implement data/repo separation validation in k3d-dr/lib/config.sh (FR-029a)
-- [ ] T042 [ASYNC] [US3] Implement Kopia repository accessibility check in k3d-dr/lib/kopia.sh
-- [ ] T043 [ASYNC] [US3] Implement Vault connectivity check in k3d-dr/lib/vault.sh
+- [x] T042 [ASYNC] [US3] Implement Kopia repository accessibility check in k3d-dr/lib/kopia.sh
+- [x] T043 [ASYNC] [US3] Implement Vault connectivity check in k3d-dr/lib/vault.sh
 - [x] T044 [ASYNC] [US3] Implement port offset validation (0-65000) in k3d-dr/lib/ports.sh (FR-038)
 - [x] T045 [ASYNC] [US3] Implement DNS suffix pattern validation in k3d-dr/lib/dns.sh (FR-039)
 - [x] T046 [ASYNC] [US3] Implement environment variable override support in k3d-dr/lib/config.sh (FR-040)
-- [ ] T047 [ASYNC] [US3] Implement secret-free configuration validation in k3d-dr/lib/config.sh (FR-033)
-- [ ] T048 [ASYNC] [US3] Implement dry-run mode in k3d-dr/backup.sh (--dry-run flag) (FR-010)
+- [x] T047 [ASYNC] [US3] Implement secret-free configuration validation in k3d-dr/lib/config.sh (FR-033)
+- [x] T048 [ASYNC] [US3] Implement dry-run mode in k3d-dr/backup.sh (--dry-run flag) (FR-010)
 
 **Checkpoint**: Validation catches all misconfigurations before backup/restore
 
@@ -138,7 +138,7 @@
 - [x] T050 [SYNC] [US4] Implement database restore hook runner in k3d-dr/hooks/db-restore.sh (FR-008)
 - [x] T051 [ASYNC] [US4] Implement hook timeout enforcement in k3d-dr/hooks/db-backup.sh (FR-008)
 - [x] T052 [ASYNC] [US4] Implement hook mandatory/optional handling in k3d-dr/hooks/db-backup.sh (FR-049)
-- [ ] T053 [ASYNC] [US4] Implement hook checksum verification in k3d-dr/hooks/db-restore.sh
+- [x] T053 [ASYNC] [US4] Implement hook checksum verification in k3d-dr/hooks/db-restore.sh
 - [x] T054 [P] [ASYNC] [US4] Create example PostgreSQL backup hook in k3d-dr/hooks/examples/pg-backup.sh
 - [x] T055 [P] [ASYNC] [US4] Create example PostgreSQL restore hook in k3d-dr/hooks/examples/pg-restore.sh
 
@@ -159,8 +159,8 @@
 - [x] T058 [ASYNC] [US5] Implement Vault seal status check in k3d-dr/lib/vault.sh
 - [x] T059 [ASYNC] [US5] Implement Vault health wait in k3d-dr/lib/vault.sh (FR-035)
 - [x] T060 [ASYNC] [US5] Implement ESO readiness verification in k3d-dr/lib/health.sh (FR-034)
-- [ ] T061 [ASYNC] [US5] Implement ESO connectivity check in k3d-dr/lib/health.sh
-- [ ] T062 [ASYNC] [US5] Implement Secret generation verification in k3d-dr/lib/health.sh
+- [x] T061 [ASYNC] [US5] Implement ESO connectivity check in k3d-dr/lib/health.sh
+- [x] T062 [ASYNC] [US5] Implement Secret generation verification in k3d-dr/lib/health.sh
 - [x] T063 [ASYNC] [US5] Implement Vault Kubernetes auth verification in k3d-dr/lib/vault.sh (FR-024)
 
 **Checkpoint**: Vault recovery chain working end-to-end
