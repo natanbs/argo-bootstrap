@@ -105,6 +105,8 @@ export KOPIA_PASSWORD="your-secure-password"
 Options:
   -c, --config FILE    Configuration file (default: backup-config.yml)
   -v, --verbose        Enable debug logging
+  --json               Output in JSON format
+  --dry-run            Perform validation only, don't backup
   -h, --help           Show this help message
 ```
 
@@ -118,6 +120,7 @@ Options:
   -r, --repo NAME      Restore specific repository only
   --volume NAME        Restore specific volume only
   -v, --verbose        Enable debug logging
+  --json               Output in JSON format
   --rollback           Rollback partial restore
   --snapshot ID        Restore from specific snapshot
   --tag NAME           Restore from tagged snapshot
@@ -167,6 +170,7 @@ bats integration/
 k3d-dr/
 ├── backup.sh              # Main backup script
 ├── restore.sh             # Main restore script
+├── validate_quickstart.sh # Quickstart validation script
 ├── lib/                   # Shared libraries
 │   ├── logging.sh         # Structured logging
 │   ├── progress.sh        # Progress reporting
@@ -182,7 +186,10 @@ k3d-dr/
 │   ├── health.sh          # Health checks
 │   ├── state.sh           # State tracking
 │   ├── registry.sh        # Registry persistence
-│   └── validation.sh      # Validation library
+│   ├── validation.sh      # Validation library
+│   ├── snapshots.sh       # Snapshot management
+│   ├── metadata.sh        # Cluster metadata collection
+│   └── discovery.sh       # Infrastructure app discovery
 ├── schemas/               # Validation schemas
 │   └── backup-config.yaml
 ├── hooks/                 # Database hooks
@@ -190,7 +197,7 @@ k3d-dr/
 │   ├── db-restore.sh      # Restore hook runner
 │   └── examples/          # Example hooks
 ├── tests/                 # Test suite
-│   ├── unit/              # Unit tests
+│   ├── unit/              # Unit tests (9 test files)
 │   ├── integration/       # Integration tests
 │   └── fixtures/          # Test fixtures
 └── docs/                  # Documentation
