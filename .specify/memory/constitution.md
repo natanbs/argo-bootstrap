@@ -63,7 +63,7 @@ Infrastructure MUST be restored before applications.
 
 The default dependency order is:
 
-k3d → registry → infrastructure → Vault → ESO → storage → applications → verification
+k3d → registry → all infrastructure apps under `~/projects/infra` (Vault, ESO, etc.) → PV/PVCs → application data → application repos → verification
 
 Actual dependencies discovered under `~/projects/repos/infra` MUST be respected.
 
