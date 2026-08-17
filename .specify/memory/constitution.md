@@ -1,50 +1,111 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+Version change: 0.0.0 → 1.0.0 (MAJOR: initial ratification)
+Added principles: 10 core principles
+  - I. Data Must Outlive the Cluster
+  - II. Repository-Driven Infrastructure
+  - III. Vault Is the Secret Authority
+  - IV. Backup Must Be Locally Recoverable
+  - V. Recovery Over Backup
+  - VI. Consistency Over Convenience
+  - VII. Dependency-Aware Recovery
+  - VIII. Minimal Secret Duplication
+  - IX. Idempotent Automation
+  - X. Simple, Explicit Operations
+Added sections: Engineering Standards, Success Principle, Governance
+Removed sections: none
+Modified sections: none
+Deferred items: none
+-->
+
+# Local k3d Disaster Recovery Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Data Must Outlive the Cluster
+The k3d cluster is disposable. No critical data may exist only inside Kubernetes, k3d, Docker, or cluster-managed storage.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All persistent application data MUST have a deterministic host filesystem location and MUST be recoverable after complete cluster destruction.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Repository-Driven Infrastructure
+`~/projects/repos` is the source of truth for declarative infrastructure and application configuration.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Configuration MUST be reproducible from repository contents. Runtime Kubernetes state MUST NOT be treated as authoritative.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Vault Is the Secret Authority
+HashiCorp Vault is the sole source of truth for application secret values.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Secrets managed by Vault/ESO MUST NOT be duplicated in Git or backup artifacts. Vault recovery data, configuration, and required recovery/unseal material MUST be backed up securely.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Backup Must Be Locally Recoverable
+All backups MUST remain on the local host and MUST be encrypted, deduplicated, integrity-checkable, and versioned.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Kopia is the sole backup engine.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+No cloud or remote backup dependency may be required for disaster recovery.
+
+### V. Recovery Over Backup
+A backup is considered valid only if it can be restored.
+
+The system MUST support complete recovery from a new k3d cluster without relying on the original cluster.
+
+Restore procedures MUST be deterministic, repeatable, and testable.
+
+### VI. Consistency Over Convenience
+Backups MUST preserve data consistency.
+
+Live databases MUST use database-native backup mechanisms where filesystem snapshots alone cannot guarantee consistency.
+
+Backup failures MUST be explicit and MUST result in a non-zero exit status.
+
+### VII. Dependency-Aware Recovery
+Infrastructure MUST be restored before applications.
+
+The default dependency order is:
+
+k3d → registry → infrastructure → Vault → ESO → storage → applications → verification
+
+Actual dependencies discovered under `~/projects/repos/infra` MUST be respected.
+
+### VIII. Minimal Secret Duplication
+Store each piece of sensitive information in exactly one authoritative location whenever practical.
+
+Derived Kubernetes Secrets MUST be recreated from Vault rather than backed up independently.
+
+### IX. Idempotent Automation
+Bootstrap, backup, and restore operations MUST be safely repeatable wherever practical.
+
+Automation MUST fail clearly rather than silently producing a partially recoverable environment.
+
+### X. Simple, Explicit Operations
+Prefer simple, inspectable tools and scripts over additional infrastructure.
+
+The system MUST use existing tooling where possible and MUST NOT introduce architectural complexity without a clear recovery benefit.
+
+## Engineering Standards
+
+- All environment-specific paths and settings MUST be configurable.
+- Backup and restore operations MUST provide actionable logs.
+- Backup integrity MUST be verifiable.
+- Recovery credentials and encryption keys MUST have an explicitly documented recovery path.
+- Destructive operations MUST require explicit confirmation or an equivalent safety mechanism.
+- Documentation MUST describe both full disaster recovery and selective data restoration.
+
+## Success Principle
+
+The ultimate test of the system is:
+
+> Delete the entire k3d cluster and all its data, then rebuild and recover everything from a local backup with a single command.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution governs the Local k3d Disaster Recovery project. All design decisions, implementation choices, and operational procedures MUST comply with these principles.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2026-06-13 | Last Amended: 2026-07-16 -->
+Amendments require:
+1. Written proposal with rationale
+2. Impact analysis on existing principles
+3. Version bump per semantic versioning rules
+
+Compliance is verified through specification review and implementation checklist validation.
+
+**Version**: 1.0.0 | **Ratified**: 2026-08-17 | **Last Amended**: 2026-08-17
