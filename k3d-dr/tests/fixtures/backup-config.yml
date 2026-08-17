@@ -1,0 +1,27 @@
+version: "1.0"
+repositories:
+  - name: argo-bootstrap
+    path: /Users/natan/projects/repos/argo-bootstrap
+    pvc: argo-bootstrap-pvc
+    data_dir: /data/argo-bootstrap
+    namespace: default
+  - name: analyst
+    path: /Users/natan/projects/repos/analyst
+    pvc: analyst-pvc
+    data_dir: /data/analyst
+    namespace: default
+kopia:
+  repository_path: /Users/natan/.kopia-repository
+  password_env: KOPIA_PASSWORD
+  retention:
+    daily: 7
+    weekly: 4
+    monthly: 12
+vault:
+  namespace: vault
+  unseal_key_path: /Users/natan/.vault-unseal-key
+database_hooks:
+  timeout: 300
+  mandatory: true
+port_offset: 0
+dns_suffix: lab=bak

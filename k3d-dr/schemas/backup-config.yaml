@@ -1,0 +1,150 @@
+# Backup Configuration Schema Definition
+#
+# Version: 1.0
+# Date: 2026-08-17
+# Feature: 006-k3d-disaster-recovery
+#
+# This schema defines the structure and validation rules for backup-config.yml.
+# Use with yq or custom validation logic.
+
+type: object
+required:
+  - version
+  - repositories
+  - kopia
+properties:
+  version:
+    type: string
+    description: Schema version
+    pattern: "^[0-9]+\\.[0-9]+$"
+    examples: ["1.0"]
+    
+  repositories:
+    type: array
+    description: Repository mappings (minimum 1 entry)
+    minItems: 1
+    items:
+      type: object
+      required:
+        - name
+        - path
+        - pvc
+        - data_dir
+        - namespace
+      properties:
+        name:
+          type: string
+          description: Unique repository identifier
+          minLength: 1
+          pattern: "^[a-z][a-z0-9-]*$"
+          
+        path:
+          type: string
+          description: Absolute path to repository on host
+          pattern: "^/"
+          
+        pvc:
+          type: string
+          description: PersistentVolumeClaim name
+          minLength: 1
+          
+        data_dir:
+          type: string
+          description: Mount path inside container
+          pattern: "^/"
+          
+        namespace:
+          type: string
+          description: Kubernetes namespace
+          minLength: 1
+          pattern: "^[a-z][a-z0-9-]*$"
+          
+        db_hook:
+          type: string
+          description: Path to database backup hook script
+          pattern: "^/"
+          
+        db_restore_hook:
+          type: string
+          description: Path to database restore hook script
+          pattern: "^/"
+
+  kopia:
+    type: object
+    description: Kopia backup engine settings
+    required:
+      - repository_path
+      - password_env
+    properties:
+      repository_path:
+        type: string
+        description: Absolute path to Kopia repository
+        pattern: "^/"
+        
+      password_env:
+        type: string
+        description: Environment variable containing Kopia password
+        minLength: 1
+        
+      retention:
+        type: object
+        description: Snapshot retention policies
+        properties:
+          daily:
+            type: integer
+            description: Number of daily snapshots to keep
+            minimum: 1
+            default: 7
+            
+          weekly:
+            type: integer
+            description: Number of weekly snapshots to keep
+            minimum: 1
+            default: 4
+            
+          monthly:
+            type: integer
+            description: Number of monthly snapshots to keep
+            minimum: 1
+            default: 12
+
+  vault:
+    type: object
+    description: Vault settings (optional)
+    properties:
+      namespace:
+        type: string
+        description: Vault namespace
+        default: "vault"
+        
+      unseal_key_path:
+        type: string
+        description: Path to unseal key file
+        pattern: "^/"
+
+  database_hooks:
+    type: object
+    description: Database hook settings (optional)
+    properties:
+      timeout:
+        type: integer
+        description: Hook execution timeout in seconds
+        minimum: 1
+        default: 300
+        
+      mandatory:
+        type: boolean
+        description: Whether hook failure fails backup
+        default: true
+
+  port_offset:
+    type: integer
+    description: Port offset for parallel clusters (0-65000)
+    minimum: 0
+    maximum: 65000
+    default: 0
+
+  dns_suffix:
+    type: string
+    description: DNS suffix override (pattern: original=replacement)
+    pattern: '[a-zA-Z0-9]+=[a-zA-Z0-9]+'
