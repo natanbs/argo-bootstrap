@@ -180,7 +180,7 @@
 - [x] T070 [ASYNC] Add JSON output mode to backup.sh and restore.sh (--json flag) (FR-015)
 - [x] T071 [ASYNC] Add verbose logging mode (--verbose flag) (FR-015)
 - [x] T072 [ASYNC] Implement backup dry-run validation output in k3d-dr/backup.sh (FR-010)
-- [ ] T073 [ASYNC] Run quickstart.md validation scenarios
+- [x] T073 [ASYNC] Run quickstart.md validation scenarios
 - [x] T074 [ASYNC] Write unit tests for lib/config.sh in k3d-dr/tests/unit/config_test.bats
 - [x] T075 [ASYNC] Write unit tests for lib/kopia.sh in k3d-dr/tests/unit/kopia_test.bats
 - [x] T076 [ASYNC] Write unit tests for lib/vault.sh in k3d-dr/tests/unit/vault_test.bats
