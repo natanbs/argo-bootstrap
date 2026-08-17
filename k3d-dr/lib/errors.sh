@@ -169,3 +169,73 @@ _json_escape() {
 # Export functions
 export -f error_create error_report error_get_last error_clear error_is error_report_auto error_report_with_remediation
 export ERROR_CODES LAST_ERROR_CODE LAST_ERROR_MESSAGE LAST_ERROR_COMPONENT LAST_ERROR_REMEDIATION
+
+# Partial failure tracking (FR-049)
+declare -g PARTIAL_FAILURES=()
+declare -g PARTIAL_FAILURE_COUNT=0
+
+# Add partial failure
+# Usage: error_add_partial <component> <message> [remediation]
+error_add_partial() {
+    local component="$1"
+    local message="$2"
+    local remediation="${3:-}"
+
+    PARTIAL_FAILURES+=("$(error_create "E021" "$message" "$component" "$remediation")")
+    PARTIAL_FAILURE_COUNT=$((PARTIAL_FAILURE_COUNT + 1))
+}
+
+# Get partial failures count
+# Usage: error_get_partial_count
+error_get_partial_count() {
+    echo "$PARTIAL_FAILURE_COUNT"
+}
+
+# Get partial failures
+# Usage: error_get_partials
+error_get_partials() {
+    for failure in "${PARTIAL_FAILURES[@]}"; do
+        echo "$failure"
+    done
+}
+
+# Check if there are partial failures
+# Usage: error_has_partials
+error_has_partials() {
+    [[ $PARTIAL_FAILURE_COUNT -gt 0 ]]
+}
+
+# Clear partial failures
+# Usage: error_clear_partials
+error_clear_partials() {
+    PARTIAL_FAILURES=()
+    PARTIAL_FAILURE_COUNT=0
+}
+
+# Create partial failure summary
+# Usage: error_partial_summary
+error_partial_summary() {
+    if [[ $PARTIAL_FAILURE_COUNT -eq 0 ]]; then
+        echo '{"partial_failures":0}'
+        return
+    fi
+
+    local json='{"partial_failures":'$PARTIAL_FAILURE_COUNT',"failures":['
+    local first=true
+
+    for failure in "${PARTIAL_FAILURES[@]}"; do
+        if $first; then
+            first=false
+        else
+            json+=","
+        fi
+        json+="$failure"
+    done
+
+    json+=']}'
+    echo "$json"
+}
+
+# Export partial failure functions
+export -f error_add_partial error_get_partial_count error_get_partials error_has_partials error_clear_partials error_partial_summary
+export PARTIAL_FAILURES PARTIAL_FAILURE_COUNT
