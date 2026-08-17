@@ -110,15 +110,15 @@
 
 ### Implementation for User Story 3
 
-- [ ] T039 [SYNC] [US3] Implement configuration validation in k3d-dr/lib/config.sh (FR-010, FR-036, FR-037)
-- [ ] T040 [ASYNC] [US3] Implement repository existence validation in k3d-dr/lib/config.sh (FR-010)
-- [ ] T041 [ASYNC] [US3] Implement volume mount path consistency check in k3d-dr/lib/config.sh (FR-028)
-- [ ] T041a [ASYNC] [US3] Implement data/repo separation validation in k3d-dr/lib/config.sh (FR-029a)
+- [x] T039 [SYNC] [US3] Implement configuration validation in k3d-dr/lib/config.sh (FR-010, FR-036, FR-037)
+- [x] T040 [ASYNC] [US3] Implement repository existence validation in k3d-dr/lib/config.sh (FR-010)
+- [x] T041 [ASYNC] [US3] Implement volume mount path consistency check in k3d-dr/lib/config.sh (FR-028)
+- [x] T041a [ASYNC] [US3] Implement data/repo separation validation in k3d-dr/lib/config.sh (FR-029a)
 - [ ] T042 [ASYNC] [US3] Implement Kopia repository accessibility check in k3d-dr/lib/kopia.sh
 - [ ] T043 [ASYNC] [US3] Implement Vault connectivity check in k3d-dr/lib/vault.sh
-- [ ] T044 [ASYNC] [US3] Implement port offset validation (0-65000) in k3d-dr/lib/ports.sh (FR-038)
-- [ ] T045 [ASYNC] [US3] Implement DNS suffix pattern validation in k3d-dr/lib/dns.sh (FR-039)
-- [ ] T046 [ASYNC] [US3] Implement environment variable override support in k3d-dr/lib/config.sh (FR-040)
+- [x] T044 [ASYNC] [US3] Implement port offset validation (0-65000) in k3d-dr/lib/ports.sh (FR-038)
+- [x] T045 [ASYNC] [US3] Implement DNS suffix pattern validation in k3d-dr/lib/dns.sh (FR-039)
+- [x] T046 [ASYNC] [US3] Implement environment variable override support in k3d-dr/lib/config.sh (FR-040)
 - [ ] T047 [ASYNC] [US3] Implement secret-free configuration validation in k3d-dr/lib/config.sh (FR-033)
 - [ ] T048 [ASYNC] [US3] Implement dry-run mode in k3d-dr/backup.sh (--dry-run flag) (FR-010)
 

@@ -22,6 +22,7 @@ source "$LIB_DIR/lock.sh"
 source "$LIB_DIR/progress.sh"
 source "$LIB_DIR/ports.sh"
 source "$LIB_DIR/dns.sh"
+source "$LIB_DIR/validation.sh"
 
 # Parse command line arguments
 parse_args() {
@@ -89,6 +90,12 @@ main() {
     # Load and validate configuration
     config_load "$config_file" || {
         log_error "Configuration validation failed" "backup"
+        exit 1
+    }
+
+    # Validate paths and dependencies
+    validate_all "$config_file" || {
+        log_error "Path validation failed" "backup"
         exit 1
     }
 
