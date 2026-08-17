@@ -92,8 +92,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T034 [SYNC] [US2] Add selective restore options to restore.sh (--repo, --volume, --snapshot, --tag) (FR-027)
-- [ ] T035 [ASYNC] [US2] Implement snapshot listing and interactive selection in k3d-dr/lib/kopia.sh (FR-027)
+- [x] T034 [SYNC] [US2] Add selective restore options to restore.sh (--repo, --volume, --snapshot, --tag) (FR-027)
+- [x] T035 [ASYNC] [US2] Implement snapshot listing and interactive selection in k3d-dr/lib/snapshots.sh (FR-027)
 - [ ] T036 [ASYNC] [US2] Implement skip-already-restored detection in k3d-dr/lib/restore.sh (FR-043)
 - [ ] T037 [SYNC] [US2] Implement rollback command (--rollback) in k3d-dr/restore.sh (FR-050)
 - [ ] T038 [ASYNC] [US2] Implement partial failure reporting in k3d-dr/lib/errors.sh (FR-049)

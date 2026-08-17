@@ -36,6 +36,10 @@ parse_args() {
                 SELECTIVE_REPO="$2"
                 shift 2
                 ;;
+            --volume)
+                SELECTIVE_VOLUME="$2"
+                shift 2
+                ;;
             -v|--verbose)
                 set_log_level "debug"
                 shift
@@ -73,6 +77,7 @@ Usage: restore.sh [OPTIONS]
 Options:
   -c, --config FILE    Configuration file (default: backup-config.yml)
   -r, --repo NAME      Restore specific repository only
+  --volume NAME        Restore specific volume only
   -v, --verbose        Enable debug logging
   --rollback           Rollback partial restore
   --snapshot ID        Restore from specific snapshot
@@ -93,6 +98,7 @@ EOF
 
 # State variables
 SELECTIVE_REPO=""
+SELECTIVE_VOLUME=""
 ROLLBACK_MODE=false
 SNAPSHOT_ID=""
 SNAPSHOT_TAG=""
@@ -359,8 +365,11 @@ _restore_repositories() {
     repo_count="$(config_get "repositories.count")"
 
     if [[ -n "$SELECTIVE_REPO" ]]; then
-        # Selective restore
+        # Selective restore by repository name
         _restore_selective_repository "$SELECTIVE_REPO"
+    elif [[ -n "$SELECTIVE_VOLUME" ]]; then
+        # Selective restore by volume name
+        _restore_selective_volume "$SELECTIVE_VOLUME"
     else
         # Full restore
         for i in $(seq 0 $((repo_count - 1))); do
@@ -440,6 +449,28 @@ _restore_selective_repository() {
     done
 
     log_error "Repository not found: $repo_name" "restore" '{"repository":"'$repo_name'"}'
+    return 1
+}
+
+# Restore selective volume
+_restore_selective_volume() {
+    local volume_name="$1"
+
+    local repo_count
+    repo_count="$(config_get "repositories.count")"
+
+    for i in $(seq 0 $((repo_count - 1))); do
+        local name pvc
+        name="$(config_get_repository "$i" "name")"
+        pvc="$(config_get_repository "$i" "pvc")"
+
+        if [[ "$pvc" == "$volume_name" ]]; then
+            _restore_repository "$i"
+            return
+        fi
+    done
+
+    log_error "Volume not found: $volume_name" "restore" '{"volume":"'$volume_name'"}'
     return 1
 }
 
