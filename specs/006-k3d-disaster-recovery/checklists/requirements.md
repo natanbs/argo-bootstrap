@@ -30,5 +30,6 @@
 
 - Tool names (Kopia, Vault, ESO, k3d) appear in the spec because they are explicit user requirements, not implementation choices. The spec describes WHAT the system must do with these tools, not HOW to implement it.
 - Success criteria reference user-facing commands (backup.sh, restore.sh) as observable outcomes, not as implementation artifacts.
-- All 24 functional requirements are testable with clear pass/fail criteria.
+- All 27 functional requirements are testable with clear pass/fail criteria.
 - 5 user stories cover the full spectrum from full disaster recovery to selective restore, validation, database backup, and Vault bootstrap chain.
+- Clarifications made: cross-platform support (macOS + Linux), configurable port offset for parallel clusters, DNS suffix override for Ingress, infrastructure scope defined as all apps under `~/projects/infra`, multiple snapshot selection methods, credential management documentation without prescribed storage location.
