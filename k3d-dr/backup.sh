@@ -36,6 +36,14 @@ parse_args() {
                 set_log_level "debug"
                 shift
                 ;;
+            --json)
+                JSON_OUTPUT=true
+                shift
+                ;;
+            --dry-run)
+                DRY_RUN=true
+                shift
+                ;;
             -h|--help)
                 show_help
                 exit 0
@@ -57,6 +65,8 @@ Usage: backup.sh [OPTIONS]
 Options:
   -c, --config FILE    Configuration file (default: backup-config.yml)
   -v, --verbose        Enable debug logging
+  --json               Output in JSON format
+  --dry-run            Perform validation only, don't backup
   -h, --help           Show this help message
 
 Environment Variables:
@@ -67,8 +77,14 @@ Examples:
   ./backup.sh -c backup-config.yml
   KOPIA_PASSWORD=mypassword ./backup.sh
   ./backup.sh --verbose
+  ./backup.sh --json
+  ./backup.sh --dry-run
 EOF
 }
+
+# State variables
+JSON_OUTPUT=false
+DRY_RUN=false
 
 # Main backup workflow
 main() {
@@ -77,7 +93,11 @@ main() {
     # Initialize logging
     init_logging
 
-    log_info "Starting backup" "backup"
+    if $JSON_OUTPUT; then
+        log_info "Starting backup" "backup" '{"output_format":"json"}'
+    else
+        log_info "Starting backup" "backup"
+    fi
 
     # Acquire exclusive lock
     lock_acquire "backup" || {
@@ -98,6 +118,12 @@ main() {
         log_error "Path validation failed" "backup"
         exit 1
     }
+
+    # Dry-run mode: Output validation results and exit
+    if $DRY_RUN; then
+        _output_dry_run
+        return
+    fi
 
     # Apply environment variable overrides
     config_apply_env_overrides
@@ -131,7 +157,68 @@ main() {
 
     progress_complete
 
-    log_info "Backup completed successfully" "backup"
+    if $JSON_OUTPUT; then
+        # Output JSON summary
+        local summary
+        summary="$(cat <<EOF
+{
+  "status": "success",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "repositories_backed_up": $(config_get "repositories.count"),
+  "vault_backed_up": true,
+  "registry_backed_up": true
+}
+EOF
+)"
+        echo "$summary"
+    else
+        log_info "Backup completed successfully" "backup"
+    fi
+}
+
+# Output dry-run validation results
+_output_dry_run() {
+    log_info "Performing dry-run validation" "backup"
+
+    local repo_count
+    repo_count="$(config_get "repositories.count")"
+
+    local kopia_repo_path
+    kopia_repo_path="$(config_get "kopia.repository_path")"
+
+    local vault_namespace
+    vault_namespace="$(config_get "vault.namespace")"
+
+    local port_offset
+    port_offset="$(config_get "port_offset")"
+
+    if $JSON_OUTPUT; then
+        local result
+        result="$(cat <<EOF
+{
+  "dry_run": true,
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "configuration_valid": true,
+  "repositories": $repo_count,
+  "kopia_repository": "$kopia_repo_path",
+  "vault_namespace": "$vault_namespace",
+  "port_offset": $port_offset,
+  "validation_passed": true
+}
+EOF
+)"
+        echo "$result"
+    else
+        echo "Dry-run validation results:"
+        echo "=========================="
+        echo "Configuration valid: Yes"
+        echo "Repositories to backup: $repo_count"
+        echo "Kopia repository: $kopia_repo_path"
+        echo "Vault namespace: $vault_namespace"
+        echo "Port offset: $port_offset"
+        echo ""
+        echo "All validation checks passed."
+    fi
 }
 
 # Initialize libraries with configuration
@@ -224,7 +311,7 @@ _backup_vault() {
     }
 }
 
-# Backup repositories
+# Backup repositories (in deterministic alphabetical order - FR-042)
 _backup_repositories() {
     local repo_count
     repo_count="$(config_get "repositories.count")"
@@ -234,11 +321,31 @@ _backup_repositories() {
         return 0
     fi
 
+    # Get repository names and sort alphabetically for deterministic ordering
+    local sorted_repos=()
     for i in $(seq 0 $((repo_count - 1))); do
-        _backup_repository "$i" || {
-            log_error "Failed to backup repository $i" "backup"
-            return 1
-        }
+        local name
+        name="$(config_get_repository "$i" "name")"
+        sorted_repos+=("$name")
+    done
+
+    # Sort repository names
+    IFS=$'\n' sorted_repos=($(sort <<<"${sorted_repos[*]}")); unset IFS
+
+    # Backup in sorted order
+    for repo_name in "${sorted_repos[@]}"; do
+        # Find index for this repository
+        for i in $(seq 0 $((repo_count - 1))); do
+            local name
+            name="$(config_get_repository "$i" "name")"
+            if [[ "$name" == "$repo_name" ]]; then
+                _backup_repository "$i" || {
+                    log_error "Failed to backup repository: $repo_name" "backup"
+                    return 1
+                }
+                break
+            fi
+        done
     done
 }
 

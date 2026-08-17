@@ -45,9 +45,9 @@ parse_args() {
                 set_log_level "debug"
                 shift
                 ;;
-            -h|--help)
-                show_help
-                exit 0
+            --json)
+                JSON_OUTPUT=true
+                shift
                 ;;
             --rollback)
                 ROLLBACK_MODE=true
@@ -60,6 +60,10 @@ parse_args() {
             --tag)
                 SNAPSHOT_TAG="$2"
                 shift 2
+                ;;
+            -h|--help)
+                show_help
+                exit 0
                 ;;
             *)
                 echo "Unknown option: $1" >&2
@@ -80,6 +84,7 @@ Options:
   -r, --repo NAME      Restore specific repository only
   --volume NAME        Restore specific volume only
   -v, --verbose        Enable debug logging
+  --json               Output in JSON format
   --rollback           Rollback partial restore
   --snapshot ID        Restore from specific snapshot
   --tag NAME           Restore from tagged snapshot
@@ -94,6 +99,7 @@ Examples:
   ./restore.sh --repo argo-bootstrap
   ./restore.sh --snapshot abc123
   ./restore.sh --tag daily
+  ./restore.sh --json
 EOF
 }
 
@@ -103,6 +109,7 @@ SELECTIVE_VOLUME=""
 ROLLBACK_MODE=false
 SNAPSHOT_ID=""
 SNAPSHOT_TAG=""
+JSON_OUTPUT=false
 
 # Main restore workflow
 main() {
@@ -111,7 +118,11 @@ main() {
     # Initialize logging
     init_logging
 
-    log_info "Starting restore" "restore"
+    if $JSON_OUTPUT; then
+        log_info "Starting restore" "restore" '{"output_format":"json"}'
+    else
+        log_info "Starting restore" "restore"
+    fi
 
     # Acquire exclusive lock
     lock_acquire "restore" || {
@@ -183,7 +194,23 @@ main() {
 
     progress_complete
 
-    log_info "Restore completed successfully" "restore"
+    if $JSON_OUTPUT; then
+        # Output JSON summary
+        local summary
+        summary="$(cat <<EOF
+{
+  "status": "success",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "repositories_restored": $(config_get "repositories.count"),
+  "vault_restored": true,
+  "cluster_restored": true
+}
+EOF
+)"
+        echo "$summary"
+    else
+        log_info "Restore completed successfully" "restore"
+    fi
 }
 
 # Initialize libraries with configuration
@@ -388,7 +415,7 @@ _restore_repositories() {
     fi
 }
 
-# Restore single repository
+# Restore single repository (with idempotency - skip if already restored)
 _restore_repository() {
     local index="$1"
 
@@ -400,6 +427,12 @@ _restore_repository() {
     namespace="$(config_get_repository "$index" "namespace")"
 
     log_info "Restoring repository: $name" "restore" '{"repository":"'$name'","path":"'$path'"}'
+
+    # Idempotency check: Skip if data already exists (FR-043)
+    if kubectl exec --context "$KUBECTL_CONTEXT" -n "$namespace" "$pvc" -- ls "$data_dir" &>/dev/null; then
+        log_info "Repository already restored, skipping: $name" "restore" '{"repository":"'$name'"}'
+        return 0
+    fi
 
     # Get latest snapshot
     local snapshot_id="$SNAPSHOT_ID"
@@ -436,6 +469,8 @@ _restore_repository() {
 
     # Clean up
     rm -rf "$tmp_dir"
+
+    log_info "Repository restore completed: $name" "restore" '{"repository":"'$name'"}'
 }
 
 # Restore selective repository

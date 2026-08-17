@@ -175,11 +175,11 @@
 - [x] T065 [SYNC] Create credential management guide in k3d-dr/docs/CREDENTIALS.md (FR-022)
 - [x] T066 [ASYNC] Create project README in k3d-dr/README.md
 - [x] T067 [ASYNC] Create backup-config.yml example in k3d-dr/examples/backup-config.yml
-- [ ] T068 [ASYNC] Implement deterministic alphabetical repository ordering in k3d-dr/lib/backup.sh (FR-042)
-- [ ] T069 [ASYNC] Implement idempotency checks in k3d-dr/lib/restore.sh (FR-043)
-- [ ] T070 [ASYNC] Add JSON output mode to backup.sh and restore.sh (--json flag) (FR-015)
-- [ ] T071 [ASYNC] Add verbose logging mode (--verbose flag) (FR-015)
-- [ ] T072 [ASYNC] Implement backup dry-run validation output in k3d-dr/backup.sh (FR-010)
+- [x] T068 [ASYNC] Implement deterministic alphabetical repository ordering in k3d-dr/lib/backup.sh (FR-042)
+- [x] T069 [ASYNC] Implement idempotency checks in k3d-dr/lib/restore.sh (FR-043)
+- [x] T070 [ASYNC] Add JSON output mode to backup.sh and restore.sh (--json flag) (FR-015)
+- [x] T071 [ASYNC] Add verbose logging mode (--verbose flag) (FR-015)
+- [x] T072 [ASYNC] Implement backup dry-run validation output in k3d-dr/backup.sh (FR-010)
 - [ ] T073 [ASYNC] Run quickstart.md validation scenarios
 - [ ] T074 [ASYNC] Write unit tests for lib/config.sh in k3d-dr/tests/unit/config_test.bats
 - [ ] T075 [ASYNC] Write unit tests for lib/kopia.sh in k3d-dr/tests/unit/kopia_test.bats
