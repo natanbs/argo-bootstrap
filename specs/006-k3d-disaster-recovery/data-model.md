@@ -254,6 +254,28 @@ dns_suffix: "lab=bak"
 - Released automatically on process exit
 - Stale locks detected by PID check
 
+### 9. Backup State File
+
+**Purpose**: Tracks backup progress for resume capability (FR-047).
+
+**File**: `/tmp/k3d-dr-backup-state.json`
+
+**Fields**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `backup_id` | string | Unique backup operation ID |
+| `started_at` | timestamp | When backup started |
+| `completed_repos` | list | Repositories already backed up |
+| `last_snapshot_id` | string | Kopia snapshot ID of last completed step |
+| `current_phase` | string | Current backup phase (vault/repos/registry/metadata) |
+
+**Behavior**:
+- Created when backup starts
+- Updated after each repository/phase completes
+- Deleted on successful backup completion
+- On resume: skip `completed_repos`, continue from `current_phase`
+
 ## State Transitions
 
 ### Backup State Machine

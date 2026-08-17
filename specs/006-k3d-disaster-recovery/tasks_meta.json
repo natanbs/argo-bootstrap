@@ -1,0 +1,816 @@
+{
+  "feature": "006-k3d-disaster-recovery",
+  "created": "2026-08-17T19:26:48+03:00",
+  "tasks": {
+    "T001": {
+      "description": "Create project directory structure at k3d-dr/",
+      "files": "k3d-dr/",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T002": {
+      "description": "Create shared logging library in k3d-dr/lib/logging.sh",
+      "files": "k3d-dr/lib/logging.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T003": {
+      "description": "Create progress reporting library in k3d-dr/lib/progress.sh",
+      "files": "k3d-dr/lib/progress.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T004": {
+      "description": "Create lock management library in k3d-dr/lib/lock.sh",
+      "files": "k3d-dr/lib/lock.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T005": {
+      "description": "Create configuration loading library in k3d-dr/lib/config.sh",
+      "files": "k3d-dr/lib/config.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T006": {
+      "description": "Create YAML validation schema at k3d-dr/schemas/backup-config.yaml",
+      "files": "k3d-dr/schemas/backup-config.yaml",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T007": {
+      "description": "Create error format library in k3d-dr/lib/errors.sh",
+      "files": "k3d-dr/lib/errors.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T008": {
+      "description": "Create Kopia wrapper library in k3d-dr/lib/kopia.sh",
+      "files": "k3d-dr/lib/kopia.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T009": {
+      "description": "Create Vault wrapper library in k3d-dr/lib/vault.sh",
+      "files": "k3d-dr/lib/vault.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T010": {
+      "description": "Create k3d wrapper library in k3d-dr/lib/k3d.sh",
+      "files": "k3d-dr/lib/k3d.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T011": {
+      "description": "Create Kubernetes wrapper library in k3d-dr/lib/kubernetes.sh",
+      "files": "k3d-dr/lib/kubernetes.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T012": {
+      "description": "Create port offset utility in k3d-dr/lib/ports.sh",
+      "files": "k3d-dr/lib/ports.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T013": {
+      "description": "Create DNS suffix utility in k3d-dr/lib/dns.sh",
+      "files": "k3d-dr/lib/dns.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T014": {
+      "description": "Implement backup.sh main orchestration script",
+      "files": "k3d-dr/backup.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T015": {
+      "description": "Implement restore.sh main orchestration script",
+      "files": "k3d-dr/restore.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T016": {
+      "description": "Implement Vault snapshot backup in k3d-dr/lib/vault.sh",
+      "files": "k3d-dr/lib/vault.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T017": {
+      "description": "Implement Vault restore with auto-unseal in k3d-dr/lib/vault.sh",
+      "files": "k3d-dr/lib/vault.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T018": {
+      "description": "Implement k3d cluster create in k3d-dr/lib/k3d.sh",
+      "files": "k3d-dr/lib/k3d.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T019": {
+      "description": "Implement k3d cluster delete in k3d-dr/lib/k3d.sh",
+      "files": "k3d-dr/lib/k3d.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T020": {
+      "description": "Implement Kopia snapshot create in k3d-dr/lib/kopia.sh",
+      "files": "k3d-dr/lib/kopia.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T021": {
+      "description": "Implement Kopia snapshot restore in k3d-dr/lib/kopia.sh",
+      "files": "k3d-dr/lib/kopia.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T022": {
+      "description": "Implement cluster metadata collection in k3d-dr/lib/metadata.sh",
+      "files": "k3d-dr/lib/metadata.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T023": {
+      "description": "Implement infrastructure app discovery under ~/projects/infra",
+      "files": "k3d-dr/lib/discovery.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T024": {
+      "description": "Implement Kubernetes resource apply in k3d-dr/lib/kubernetes.sh",
+      "files": "k3d-dr/lib/kubernetes.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T025": {
+      "description": "Implement health check verification in k3d-dr/lib/health.sh",
+      "files": "k3d-dr/lib/health.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T026": {
+      "description": "Implement port offset application for k3d cluster",
+      "files": "k3d-dr/lib/k3d.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T027": {
+      "description": "Implement DNS suffix rewriting for Ingress resources",
+      "files": "k3d-dr/lib/dns.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T028": {
+      "description": "Implement backup progress reporting in k3d-dr/lib/progress.sh",
+      "files": "k3d-dr/lib/progress.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T029": {
+      "description": "Implement restore progress reporting in k3d-dr/lib/progress.sh",
+      "files": "k3d-dr/lib/progress.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T030": {
+      "description": "Implement backup resume capability in k3d-dr/lib/kopia.sh",
+      "files": "k3d-dr/lib/kopia.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T031": {
+      "description": "Implement Kopia retention policy in k3d-dr/lib/kopia.sh",
+      "files": "k3d-dr/lib/kopia.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T032": {
+      "description": "Implement Kopia integrity verification in k3d-dr/lib/kopia.sh",
+      "files": "k3d-dr/lib/kopia.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T033": {
+      "description": "Implement registry persistence in k3d-dr/lib/registry.sh",
+      "files": "k3d-dr/lib/registry.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T034": {
+      "description": "Add selective restore options to restore.sh",
+      "files": "k3d-dr/restore.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T035": {
+      "description": "Implement snapshot listing and interactive selection",
+      "files": "k3d-dr/lib/kopia.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T036": {
+      "description": "Implement skip-already-restored detection",
+      "files": "k3d-dr/lib/restore.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T037": {
+      "description": "Implement rollback command (--rollback)",
+      "files": "k3d-dr/restore.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T038": {
+      "description": "Implement partial failure reporting",
+      "files": "k3d-dr/lib/errors.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T039": {
+      "description": "Implement configuration validation in config.sh",
+      "files": "k3d-dr/lib/config.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T040": {
+      "description": "Implement repository existence validation",
+      "files": "k3d-dr/lib/config.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T041": {
+      "description": "Implement volume mount path consistency check",
+      "files": "k3d-dr/lib/config.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T042": {
+      "description": "Implement Kopia repository accessibility check",
+      "files": "k3d-dr/lib/kopia.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T043": {
+      "description": "Implement Vault connectivity check",
+      "files": "k3d-dr/lib/vault.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T044": {
+      "description": "Implement port offset validation (0-65000)",
+      "files": "k3d-dr/lib/ports.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T045": {
+      "description": "Implement DNS suffix pattern validation",
+      "files": "k3d-dr/lib/dns.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T046": {
+      "description": "Implement environment variable override support",
+      "files": "k3d-dr/lib/config.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T047": {
+      "description": "Implement secret-free configuration validation",
+      "files": "k3d-dr/lib/config.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T048": {
+      "description": "Implement dry-run mode in backup.sh",
+      "files": "k3d-dr/backup.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T049": {
+      "description": "Implement database backup hook runner",
+      "files": "k3d-dr/hooks/db-backup.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T050": {
+      "description": "Implement database restore hook runner",
+      "files": "k3d-dr/hooks/db-restore.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T051": {
+      "description": "Implement hook timeout enforcement",
+      "files": "k3d-dr/hooks/db-backup.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T052": {
+      "description": "Implement hook mandatory/optional handling",
+      "files": "k3d-dr/hooks/db-backup.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T053": {
+      "description": "Implement hook checksum verification",
+      "files": "k3d-dr/hooks/db-restore.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T054": {
+      "description": "Create example PostgreSQL backup hook",
+      "files": "k3d-dr/hooks/examples/pg-backup.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T055": {
+      "description": "Create example PostgreSQL restore hook",
+      "files": "k3d-dr/hooks/examples/pg-restore.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T056": {
+      "description": "Implement Vault Raft snapshot restore",
+      "files": "k3d-dr/lib/vault.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T057": {
+      "description": "Implement Vault auto-unseal with stored key",
+      "files": "k3d-dr/lib/vault.sh",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T058": {
+      "description": "Implement Vault seal status check",
+      "files": "k3d-dr/lib/vault.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T059": {
+      "description": "Implement Vault health wait",
+      "files": "k3d-dr/lib/vault.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T060": {
+      "description": "Implement ESO readiness verification",
+      "files": "k3d-dr/lib/health.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T061": {
+      "description": "Implement ESO connectivity check",
+      "files": "k3d-dr/lib/health.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T062": {
+      "description": "Implement Secret generation verification",
+      "files": "k3d-dr/lib/health.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T063": {
+      "description": "Implement Vault Kubernetes auth verification",
+      "files": "k3d-dr/lib/vault.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T064": {
+      "description": "Create recovery procedures documentation",
+      "files": "k3d-dr/docs/RECOVERY.md",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T065": {
+      "description": "Create credential management guide",
+      "files": "k3d-dr/docs/CREDENTIALS.md",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T066": {
+      "description": "Create project README",
+      "files": "k3d-dr/README.md",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T067": {
+      "description": "Create backup-config.yml example",
+      "files": "k3d-dr/examples/backup-config.yml",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T068": {
+      "description": "Implement deterministic alphabetical repository ordering",
+      "files": "k3d-dr/lib/backup.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T069": {
+      "description": "Implement idempotency checks in restore.sh",
+      "files": "k3d-dr/lib/restore.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T070": {
+      "description": "Add JSON output mode to backup.sh and restore.sh",
+      "files": "k3d-dr/backup.sh,k3d-dr/restore.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T071": {
+      "description": "Add verbose logging mode",
+      "files": "k3d-dr/backup.sh,k3d-dr/restore.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T072": {
+      "description": "Implement backup dry-run validation output",
+      "files": "k3d-dr/backup.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T073": {
+      "description": "Run quickstart.md validation scenarios",
+      "files": "specs/006-k3d-disaster-recovery/quickstart.md",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T013a": {
+      "description": "Setup bats-core test framework in k3d-dr/tests/unit/",
+      "files": "k3d-dr/tests/unit/",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T013b": {
+      "description": "Create test fixtures in k3d-dr/tests/fixtures/",
+      "files": "k3d-dr/tests/fixtures/",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T030a": {
+      "description": "Implement backup state tracking in k3d-dr/lib/state.sh",
+      "files": "k3d-dr/lib/state.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T041a": {
+      "description": "Implement data/repo separation validation in k3d-dr/lib/config.sh",
+      "files": "k3d-dr/lib/config.sh",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T074": {
+      "description": "Write unit tests for lib/config.sh",
+      "files": "k3d-dr/tests/unit/config_test.bats",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T075": {
+      "description": "Write unit tests for lib/kopia.sh",
+      "files": "k3d-dr/tests/unit/kopia_test.bats",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T076": {
+      "description": "Write unit tests for lib/vault.sh",
+      "files": "k3d-dr/tests/unit/vault_test.bats",
+      "execution_mode": "ASYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    },
+    "T077": {
+      "description": "Write integration test for full recovery",
+      "files": "k3d-dr/tests/integration/full_recovery.bats",
+      "execution_mode": "SYNC",
+      "status": "pending",
+      "agent_type": "general",
+      "started_at": null,
+      "completed_at": null,
+      "result_summary": null
+    }
+  }
+}
