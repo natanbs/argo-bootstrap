@@ -21,10 +21,10 @@
 
 **Purpose**: Project directory structure and shared libraries
 
-- [ ] T001 [ASYNC] Create project directory structure at k3d-dr/ per plan.md
-- [ ] T002 [P] [ASYNC] Create shared logging library in k3d-dr/lib/logging.sh (FR-046)
-- [ ] T003 [P] [ASYNC] Create progress reporting library in k3d-dr/lib/progress.sh (FR-044, FR-045)
-- [ ] T004 [P] [ASYNC] Create lock management library in k3d-dr/lib/lock.sh (FR-048)
+- [x] T001 [ASYNC] Create project directory structure at k3d-dr/ per plan.md
+- [x] T002 [P] [ASYNC] Create shared logging library in k3d-dr/lib/logging.sh (FR-046)
+- [x] T003 [P] [ASYNC] Create progress reporting library in k3d-dr/lib/progress.sh (FR-044, FR-045)
+- [x] T004 [P] [ASYNC] Create lock management library in k3d-dr/lib/lock.sh (FR-048)
 
 ---
 
@@ -34,17 +34,17 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 [ASYNC] Create configuration loading library in k3d-dr/lib/config.sh (FR-019, FR-036, FR-037)
-- [ ] T006 [ASYNC] Create YAML validation schema at k3d-dr/schemas/backup-config.yaml (FR-036)
-- [ ] T007 [ASYNC] Create error format library in k3d-dr/lib/errors.sh (FR-051)
-- [ ] T008 [P] [ASYNC] Create Kopia wrapper library in k3d-dr/lib/kopia.sh (FR-003, FR-012, FR-013)
-- [ ] T009 [P] [ASYNC] Create Vault wrapper library in k3d-dr/lib/vault.sh (FR-006, FR-030)
-- [ ] T010 [P] [ASYNC] Create k3d wrapper library in k3d-dr/lib/k3d.sh (FR-020, FR-025)
-- [ ] T011 [P] [ASYNC] Create Kubernetes wrapper library in k3d-dr/lib/kubernetes.sh (FR-016)
-- [ ] T012 [ASYNC] Create port offset utility in k3d-dr/lib/ports.sh (FR-025, FR-038)
-- [ ] T013 [ASYNC] Create DNS suffix utility in k3d-dr/lib/dns.sh (FR-026, FR-039)
-- [ ] T013a [P] [ASYNC] Setup bats-core test framework in k3d-dr/tests/unit/
-- [ ] T013b [P] [ASYNC] Create test fixtures in k3d-dr/tests/fixtures/
+- [x] T005 [ASYNC] Create configuration loading library in k3d-dr/lib/config.sh (FR-019, FR-036, FR-037)
+- [x] T006 [ASYNC] Create YAML validation schema at k3d-dr/schemas/backup-config.yaml (FR-036)
+- [x] T007 [ASYNC] Create error format library in k3d-dr/lib/errors.sh (FR-051)
+- [x] T008 [P] [ASYNC] Create Kopia wrapper library in k3d-dr/lib/kopia.sh (FR-003, FR-012, FR-013)
+- [x] T009 [P] [ASYNC] Create Vault wrapper library in k3d-dr/lib/vault.sh (FR-006, FR-030)
+- [x] T010 [P] [ASYNC] Create k3d wrapper library in k3d-dr/lib/k3d.sh (FR-020, FR-025)
+- [x] T011 [P] [ASYNC] Create Kubernetes wrapper library in k3d-dr/lib/kubernetes.sh (FR-016)
+- [x] T012 [ASYNC] Create port offset utility in k3d-dr/lib/ports.sh (FR-025, FR-038)
+- [x] T013 [ASYNC] Create DNS suffix utility in k3d-dr/lib/dns.sh (FR-026, FR-039)
+- [x] T013a [P] [ASYNC] Setup bats-core test framework in k3d-dr/tests/unit/
+- [x] T013b [P] [ASYNC] Create test fixtures in k3d-dr/tests/fixtures/
 
 **Checkpoint**: Foundation ready - user story implementation can begin
 
@@ -58,27 +58,27 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [SYNC] [US1] Implement backup.sh main orchestration script in k3d-dr/backup.sh (FR-001, FR-014, FR-018, FR-041, FR-042)
-- [ ] T015 [SYNC] [US1] Implement restore.sh main orchestration script in k3d-dr/restore.sh (FR-002, FR-016, FR-018)
-- [ ] T016 [P] [ASYNC] [US1] Implement Vault snapshot backup in k3d-dr/lib/vault.sh (FR-006)
-- [ ] T017 [P] [ASYNC] [US1] Implement Vault restore with auto-unseal in k3d-dr/lib/vault.sh (FR-030, FR-031)
-- [ ] T018 [P] [ASYNC] [US1] Implement k3d cluster create in k3d-dr/lib/k3d.sh (FR-020, FR-025)
-- [ ] T019 [P] [ASYNC] [US1] Implement k3d cluster delete in k3d-dr/lib/k3d.sh
-- [ ] T020 [P] [ASYNC] [US1] Implement Kopia snapshot create in k3d-dr/lib/kopia.sh (FR-003)
-- [ ] T021 [P] [ASYNC] [US1] Implement Kopia snapshot restore in k3d-dr/lib/kopia.sh
+- [x] T014 [SYNC] [US1] Implement backup.sh main orchestration script in k3d-dr/backup.sh (FR-001, FR-014, FR-018, FR-041, FR-042)
+- [x] T015 [SYNC] [US1] Implement restore.sh main orchestration script in k3d-dr/restore.sh (FR-002, FR-016, FR-018)
+- [x] T016 [P] [ASYNC] [US1] Implement Vault snapshot backup in k3d-dr/lib/vault.sh (FR-006)
+- [x] T017 [P] [ASYNC] [US1] Implement Vault restore with auto-unseal in k3d-dr/lib/vault.sh (FR-030, FR-031)
+- [x] T018 [P] [ASYNC] [US1] Implement k3d cluster create in k3d-dr/lib/k3d.sh (FR-020, FR-025)
+- [x] T019 [P] [ASYNC] [US1] Implement k3d cluster delete in k3d-dr/lib/k3d.sh
+- [x] T020 [P] [ASYNC] [US1] Implement Kopia snapshot create in k3d-dr/lib/kopia.sh (FR-003)
+- [x] T021 [P] [ASYNC] [US1] Implement Kopia snapshot restore in k3d-dr/lib/kopia.sh
 - [ ] T022 [ASYNC] [US1] Implement cluster metadata collection in k3d-dr/lib/metadata.sh (FR-011)
 - [ ] T023 [ASYNC] [US1] Implement infrastructure app discovery under ~/projects/infra in k3d-dr/lib/discovery.sh (FR-016)
-- [ ] T024 [ASYNC] [US1] Implement Kubernetes resource apply in k3d-dr/lib/kubernetes.sh (FR-016)
-- [ ] T025 [ASYNC] [US1] Implement health check verification in k3d-dr/lib/health.sh (FR-034, FR-035)
-- [ ] T026 [SYNC] [US1] Implement port offset application for k3d cluster in k3d-dr/lib/k3d.sh (FR-025, FR-038)
-- [ ] T027 [SYNC] [US1] Implement DNS suffix rewriting for Ingress resources in k3d-dr/lib/dns.sh (FR-026, FR-039)
-- [ ] T028 [ASYNC] [US1] Implement backup progress reporting in k3d-dr/lib/progress.sh (FR-044)
-- [ ] T029 [ASYNC] [US1] Implement restore progress reporting in k3d-dr/lib/progress.sh (FR-045)
-- [ ] T030 [ASYNC] [US1] Implement backup resume capability in k3d-dr/lib/kopia.sh (FR-047)
-- [ ] T030a [ASYNC] [US1] Implement backup state tracking in k3d-dr/lib/state.sh (FR-047)
-- [ ] T031 [ASYNC] [US1] Implement Kopia retention policy in k3d-dr/lib/kopia.sh (FR-013)
-- [ ] T032 [ASYNC] [US1] Implement Kopia integrity verification in k3d-dr/lib/kopia.sh (FR-012)
-- [ ] T033 [ASYNC] [US1] Implement registry persistence in k3d-dr/lib/registry.sh (FR-009)
+- [x] T024 [ASYNC] [US1] Implement Kubernetes resource apply in k3d-dr/lib/kubernetes.sh (FR-016)
+- [x] T025 [ASYNC] [US1] Implement health check verification in k3d-dr/lib/health.sh (FR-034, FR-035)
+- [x] T026 [SYNC] [US1] Implement port offset application for k3d cluster in k3d-dr/lib/k3d.sh (FR-025, FR-038)
+- [x] T027 [SYNC] [US1] Implement DNS suffix rewriting for Ingress resources in k3d-dr/lib/dns.sh (FR-026, FR-039)
+- [x] T028 [ASYNC] [US1] Implement backup progress reporting in k3d-dr/lib/progress.sh (FR-044)
+- [x] T029 [ASYNC] [US1] Implement restore progress reporting in k3d-dr/lib/progress.sh (FR-045)
+- [x] T030 [ASYNC] [US1] Implement backup resume capability in k3d-dr/lib/kopia.sh (FR-047)
+- [x] T030a [ASYNC] [US1] Implement backup state tracking in k3d-dr/lib/state.sh (FR-047)
+- [x] T031 [ASYNC] [US1] Implement Kopia retention policy in k3d-dr/lib/kopia.sh (FR-013)
+- [x] T032 [ASYNC] [US1] Implement Kopia integrity verification in k3d-dr/lib/kopia.sh (FR-012)
+- [x] T033 [ASYNC] [US1] Implement registry persistence in k3d-dr/lib/registry.sh (FR-009)
 
 **Checkpoint**: Full backup and restore working end-to-end
 
