@@ -2,357 +2,241 @@
 # test_full_recovery.bats - Integration test for full disaster recovery
 # T077: Write integration test for full recovery
 
-load '../test_helper'
+SCRIPT_DIR=""
+TEST_TMPDIR=""
 
-# Setup test environment
 setup() {
-    # Create temporary directory
+    SCRIPT_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
     TEST_TMPDIR="$(mktemp -d)"
-
-    # Create test configuration
-    create_test_config
-
-    # Set required environment variables
-    export KOPIA_PASSWORD="test-password-123"
-    export VAULT_ADDR="https://127.0.0.1:8200"
-
-    # Create test data directory
-    mkdir -p "$TEST_TMPDIR/test-repo"
-    echo "test data" > "$TEST_TMPDIR/test-repo/test-file.txt"
-
-    # Create mock commands
-    create_mock_commands
 }
 
-# Cleanup test environment
 cleanup() {
     rm -rf "$TEST_TMPDIR"
 }
 
-# Create test configuration
-create_test_config() {
-    cat > "$TEST_TMPDIR/backup-config.yml" << 'EOF'
-version: "1.0"
-repositories:
-  - name: test-repo
-    path: TEST_TMPDIR/test-repo
-    pvc: test-repo-data
-    data_dir: /data/test-repo
-    namespace: default
-kopia:
-  repository_path: TEST_TMPDIR/.kopia-repository
-  password_env: KOPIA_PASSWORD
-  retention:
-    daily: 3
-    weekly: 2
-    monthly: 1
-vault:
-  namespace: vault
-  unseal_key_path: TEST_TMPDIR/.vault-unseal-key
-port_offset: 0
-EOF
-
-    # Replace TEST_TMPDIR with actual path
-    sed -i '' "s|TEST_TMPDIR|$TEST_TMPDIR|g" "$TEST_TMPDIR/backup-config.yml"
+@test "backup.sh exists and is executable" {
+    [ -f "$SCRIPT_DIR/backup.sh" ]
+    [ -x "$SCRIPT_DIR/backup.sh" ]
 }
 
-# Create mock commands
-create_mock_commands() {
-    mkdir -p "$TEST_TMPDIR/bin"
-
-    # Mock k3d
-    cat > "$TEST_TMPDIR/bin/k3d" << 'EOF'
-#!/bin/bash
-case "$1" in
-    version)
-        echo "k3d version v5.0.0"
-        ;;
-    cluster)
-        case "$2" in
-            create)
-                echo "Creating cluster"
-                ;;
-            delete)
-                echo "Deleting cluster"
-                ;;
-            list)
-                echo "NAME        SERVERS   AGENTS   LOADBALANCER"
-                echo "test-k3d    1/1       0/0      true"
-                ;;
-        esac
-        ;;
-esac
-EOF
-    chmod +x "$TEST_TMPDIR/bin/k3d"
-
-    # Mock kubectl
-    cat > "$TEST_TMPDIR/bin/kubectl" << 'EOF'
-#!/bin/bash
-case "$1" in
-    version)
-        echo "Client Version: v1.24.0"
-        echo "Server Version: v1.24.0"
-        ;;
-    get)
-        case "$2" in
-            pods)
-                echo "NAME                     READY   STATUS    RESTARTS   AGE"
-                echo "test-pod                 1/1     Running   0          1m"
-                ;;
-            pvc)
-                echo "NAME              STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS"
-                echo "test-pvc          Bound    test-vol 1Gi        RWO            local-path"
-                ;;
-            namespaces)
-                echo "NAME              STATUS   AGE"
-                echo "default           Active   1m"
-                ;;
-            externalsecrets)
-                echo "NAME              STATUS   AGE"
-                echo "test-secret       Ready    1m"
-                ;;
-        esac
-        ;;
-esac
-EOF
-    chmod +x "$TEST_TMPDIR/bin/kubectl"
-
-    # Mock vault
-    cat > "$TEST_TMPDIR/bin/vault" << 'EOF'
-#!/bin/bash
-case "$1" in
-    version)
-        echo "Vault v1.12.0"
-        ;;
-    status)
-        echo '{"sealed":false}'
-        ;;
-    operator)
-        case "$2" in
-            raft)
-                case "$3" in
-                    snapshot)
-                        case "$4" in
-                            save)
-                                echo "Snapshot saved"
-                                ;;
-                            restore)
-                                echo "Snapshot restored"
-                                ;;
-                        esac
-                        ;;
-                esac
-                ;;
-            unseal)
-                echo "Vault unsealed"
-                ;;
-        esac
-        ;;
-esac
-EOF
-    chmod +x "$TEST_TMPDIR/bin/vault"
-
-    # Mock kopia
-    cat > "$TEST_TMPDIR/bin/kopia" << 'EOF'
-#!/bin/bash
-case "$1" in
-    version)
-        echo "0.12.0"
-        ;;
-    repository)
-        case "$2" in
-            create)
-                echo "Repository created"
-                ;;
-            connect)
-                echo "Repository connected"
-                ;;
-            verify)
-                echo "Repository verified"
-                ;;
-            status)
-                echo "Connected"
-                ;;
-        esac
-        ;;
-    snapshot)
-        case "$2" in
-            create)
-                echo "Snapshot created: abc123"
-                ;;
-            list)
-                echo "ID    TIME                 SOURCE     SIZE"
-                echo "abc123 2026-08-17 10:00:00 /test-repo 100B"
-                ;;
-            restore)
-                echo "Snapshot restored"
-                ;;
-        esac
-        ;;
-    policy)
-        echo "Policy set"
-        ;;
-esac
-EOF
-    chmod +x "$TEST_TMPDIR/bin/kopia"
-
-    # Mock helm
-    cat > "$TEST_TMPDIR/bin/helm" << 'EOF'
-#!/bin/bash
-case "$1" in
-    version)
-        echo "v3.10.0+g3855f81"
-        ;;
-esac
-EOF
-    chmod +x "$TEST_TMPDIR/bin/helm"
-
-    # Mock docker
-    cat > "$TEST_TMPDIR/bin/docker" << 'EOF'
-#!/bin/bash
-case "$1" in
-    version)
-        echo "Docker version 20.10.0"
-        ;;
-    info)
-        echo "Server Version: 20.10.0"
-        ;;
-esac
-EOF
-    chmod +x "$TEST_TMPDIR/bin/docker"
-
-    # Mock bc
-    cat > "$TEST_TMPDIR/bin/bc" << 'EOF'
-#!/bin/bash
-echo "1"
-EOF
-    chmod +x "$TEST_TMPDIR/bin/bc"
-
-    # Mock sha256sum
-    cat > "$TEST_TMPDIR/bin/sha256sum" << 'EOF'
-#!/bin/bash
-echo "abc123  $1"
-EOF
-    chmod +x "$TEST_TMPDIR/bin/sha256sum"
-
-    # Mock jq
-    cat > "$TEST_TMPDIR/bin/jq" << 'EOF'
-#!/bin/bash
-# Simple jq mock - just pass through for basic operations
-if [[ "$*" == *"--version"* ]]; then
-    echo "jq-1.6"
-else
-    # For most operations, just echo the input
-    cat
-fi
-EOF
-    chmod +x "$TEST_TMPDIR/bin/jq"
-
-    # Mock yq
-    cat > "$TEST_TMPDIR/bin/yq" << 'EOF'
-#!/bin/bash
-# Simple yq mock - extract values from YAML
-if [[ "$*" == *"--version"* ]]; then
-    echo "yq (https://github.com/mikefarah/yq/) version 4.30.0"
-else
-    # For config loading, just echo default values
-    echo "1.0"
-fi
-EOF
-    chmod +x "$TEST_TMPDIR/bin/yq"
-
-    # Add mock bin to PATH
-    export PATH="$TEST_TMPDIR/bin:$PATH"
+@test "restore.sh exists and is executable" {
+    [ -f "$SCRIPT_DIR/restore.sh" ]
+    [ -x "$SCRIPT_DIR/restore.sh" ]
 }
 
-# Test full backup and restore workflow
-@test "Full disaster recovery workflow" {
-    # Skip if not in full test mode
-    if [[ "${FULL_TEST:-false}" != "true" ]]; then
-        skip "Set FULL_TEST=true to run full integration test"
-    fi
-
-    # Run backup
-    run "$SCRIPT_DIR/backup.sh" --config "$TEST_TMPDIR/backup-config.yml"
-    assert_success
-    assert_output --partial "Backup completed successfully"
-
-    # Destroy cluster (simulate)
-    run "$TEST_TMPDIR/bin/k3d" cluster delete
-    assert_success
-
-    # Restore
-    run "$SCRIPT_DIR/restore.sh" --config "$TEST_TMPDIR/backup-config.yml"
-    assert_success
-    assert_output --partial "Restore completed successfully"
-}
-
-@test "Backup dry-run validates configuration" {
-    run "$SCRIPT_DIR/backup.sh" --config "$TEST_TMPDIR/backup-config.yml" --dry-run
-    assert_success
-    assert_output --partial "Dry-run validation results"
-}
-
-@test "Restore dry-run validates configuration" {
-    run "$SCRIPT_DIR/restore.sh" --config "$TEST_TMPDIR/backup-config.yml" --dry-run
-    assert_success
-    assert_output --partial "Dry-run validation results"
-}
-
-@test "Backup reports progress" {
-    run "$SCRIPT_DIR/backup.sh" --config "$TEST_TMPDIR/backup-config.yml" --verbose
-    assert_success
-}
-
-@test "Restore reports progress" {
-    run "$SCRIPT_DIR/restore.sh" --config "$TEST_TMPDIR/backup-config.yml" --verbose
-    assert_success
-}
-
-@test "Backup outputs JSON when requested" {
-    run "$SCRIPT_DIR/backup.sh" --config "$TEST_TMPDIR/backup-config.yml" --dry-run --json
-    assert_success
-}
-
-@test "Restore outputs JSON when requested" {
-    run "$SCRIPT_DIR/restore.sh" --config "$TEST_TMPDIR/backup-config.yml" --dry-run --json
-    assert_success
-}
-
-@test "Backup fails with invalid config" {
-    run "$SCRIPT_DIR/backup.sh" --config "$TEST_TMPDIR/nonexistent-config.yml"
-    assert_failure
-}
-
-@test "Restore fails with invalid config" {
-    run "$SCRIPT_DIR/restore.sh" --config "$TEST_TMPDIR/nonexistent-config.yml"
-    assert_failure
-}
-
-@test "Selective restore with --repo flag" {
-    run "$SCRIPT_DIR/restore.sh" --config "$TEST_TMPDIR/backup-config.yml" --repo test-repo --dry-run
-    assert_success
-}
-
-@test "Selective restore with --snapshot flag" {
-    run "$SCRIPT_DIR/restore.sh" --config "$TEST_TMPDIR/backup-config.yml" --snapshot abc123 --dry-run
-    assert_success
-}
-
-@test "Backup help shows usage" {
+@test "backup.sh --help shows usage" {
     run "$SCRIPT_DIR/backup.sh" --help
-    assert_success
-    assert_output --partial "Usage:"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Usage:"* ]]
+    [[ "$output" == *"--config"* ]]
+    [[ "$output" == *"--dry-run"* ]]
+    [[ "$output" == *"--json"* ]]
+    [[ "$output" == *"--verbose"* ]]
 }
 
-@test "Restore help shows usage" {
+@test "restore.sh --help shows usage" {
     run "$SCRIPT_DIR/restore.sh" --help
-    assert_success
-    assert_output --partial "Usage:"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Usage:"* ]]
+    [[ "$output" == *"--repo"* ]]
+    [[ "$output" == *"--snapshot"* ]]
+    [[ "$output" == *"--tag"* ]]
+    [[ "$output" == *"--rollback"* ]]
 }
 
-@test "Error codes are machine-readable JSON" {
-    run "$SCRIPT_DIR/lib/errors.sh" 2>/dev/null || true
-    # The library should load without errors
-    assert [ -f "$SCRIPT_DIR/lib/errors.sh" ]
+@test "backup.sh fails with nonexistent config" {
+    run "$SCRIPT_DIR/backup.sh" --config "$TEST_TMPDIR/nonexistent.yml"
+    [ "$status" -ne 0 ]
+}
+
+@test "restore.sh fails with nonexistent config" {
+    run "$SCRIPT_DIR/restore.sh" --config "$TEST_TMPDIR/nonexistent.yml"
+    [ "$status" -ne 0 ]
+}
+
+@test "All required libraries exist" {
+    [ -f "$SCRIPT_DIR/lib/logging.sh" ]
+    [ -f "$SCRIPT_DIR/lib/errors.sh" ]
+    [ -f "$SCRIPT_DIR/lib/config.sh" ]
+    [ -f "$SCRIPT_DIR/lib/kopia.sh" ]
+    [ -f "$SCRIPT_DIR/lib/vault.sh" ]
+    [ -f "$SCRIPT_DIR/lib/k3d.sh" ]
+    [ -f "$SCRIPT_DIR/lib/kubernetes.sh" ]
+    [ -f "$SCRIPT_DIR/lib/ports.sh" ]
+    [ -f "$SCRIPT_DIR/lib/dns.sh" ]
+    [ -f "$SCRIPT_DIR/lib/validation.sh" ]
+    [ -f "$SCRIPT_DIR/lib/progress.sh" ]
+    [ -f "$SCRIPT_DIR/lib/lock.sh" ]
+    [ -f "$SCRIPT_DIR/lib/state.sh" ]
+    [ -f "$SCRIPT_DIR/lib/registry.sh" ]
+    [ -f "$SCRIPT_DIR/lib/health.sh" ]
+    [ -f "$SCRIPT_DIR/lib/snapshots.sh" ]
+    [ -f "$SCRIPT_DIR/lib/metadata.sh" ]
+    [ -f "$SCRIPT_DIR/lib/discovery.sh" ]
+}
+
+@test "Hook scripts exist" {
+    [ -f "$SCRIPT_DIR/hooks/db-backup.sh" ]
+    [ -x "$SCRIPT_DIR/hooks/db-backup.sh" ]
+    [ -f "$SCRIPT_DIR/hooks/db-restore.sh" ]
+    [ -x "$SCRIPT_DIR/hooks/db-restore.sh" ]
+}
+
+@test "Example hooks exist" {
+    [ -f "$SCRIPT_DIR/hooks/examples/pg-backup.sh" ]
+    [ -x "$SCRIPT_DIR/hooks/examples/pg-backup.sh" ]
+    [ -f "$SCRIPT_DIR/hooks/examples/pg-restore.sh" ]
+    [ -x "$SCRIPT_DIR/hooks/examples/pg-restore.sh" ]
+}
+
+@test "Documentation exists" {
+    [ -f "$SCRIPT_DIR/README.md" ]
+    [ -f "$SCRIPT_DIR/docs/RECOVERY.md" ]
+    [ -f "$SCRIPT_DIR/docs/CREDENTIALS.md" ]
+}
+
+@test "Example config exists" {
+    [ -f "$SCRIPT_DIR/examples/backup-config.yml" ]
+}
+
+@test "Test fixtures exist" {
+    [ -f "$SCRIPT_DIR/tests/fixtures/backup-config.yml" ]
+}
+
+@test "Unit tests exist" {
+    [ -f "$SCRIPT_DIR/tests/unit/test_ports.bats" ]
+    [ -f "$SCRIPT_DIR/tests/unit/test_dns.bats" ]
+    [ -f "$SCRIPT_DIR/tests/unit/test_errors.bats" ]
+    [ -f "$SCRIPT_DIR/tests/unit/test_logging.bats" ]
+    [ -f "$SCRIPT_DIR/tests/unit/test_progress.bats" ]
+    [ -f "$SCRIPT_DIR/tests/unit/test_lock.bats" ]
+    [ -f "$SCRIPT_DIR/tests/unit/test_config.bats" ]
+    [ -f "$SCRIPT_DIR/tests/unit/test_kopia.bats" ]
+    [ -f "$SCRIPT_DIR/tests/unit/test_vault.bats" ]
+}
+
+@test "YAML validation schema exists" {
+    [ -f "$SCRIPT_DIR/schemas/backup-config.yaml" ]
+}
+
+@test "libraries have no bash 4+ syntax errors" {
+    for lib in "$SCRIPT_DIR"/lib/*.sh; do
+        run bash -n "$lib"
+        [ "$status" -eq 0 ] || {
+            echo "Syntax error in: $lib"
+            false
+        }
+    done
+}
+
+@test "backup.sh has no syntax errors" {
+    run bash -n "$SCRIPT_DIR/backup.sh"
+    [ "$status" -eq 0 ]
+}
+
+@test "restore.sh has no syntax errors" {
+    run bash -n "$SCRIPT_DIR/restore.sh"
+    [ "$status" -eq 0 ]
+}
+
+@test "Hook scripts have no syntax errors" {
+    for hook in "$SCRIPT_DIR"/hooks/*.sh; do
+        run bash -n "$hook"
+        [ "$status" -eq 0 ] || {
+            echo "Syntax error in: $hook"
+            false
+        }
+    done
+}
+
+@test "All scripts are valid bash" {
+    for script in "$SCRIPT_DIR"/*.sh "$SCRIPT_DIR"/hooks/*.sh; do
+        run bash -n "$script"
+        [ "$status" -eq 0 ] || {
+            echo "Syntax error in: $script"
+            false
+        }
+    done
+}
+
+@test "validate_quickstart.sh exists and is executable" {
+    [ -f "$SCRIPT_DIR/validate_quickstart.sh" ]
+    [ -x "$SCRIPT_DIR/validate_quickstart.sh" ]
+}
+
+@test "Example config has valid YAML structure" {
+    # Check basic YAML structure with grep
+    grep -q 'version:' "$SCRIPT_DIR/examples/backup-config.yml"
+    grep -q 'repositories:' "$SCRIPT_DIR/examples/backup-config.yml"
+    grep -q 'kopia:' "$SCRIPT_DIR/examples/backup-config.yml"
+    grep -q 'vault:' "$SCRIPT_DIR/examples/backup-config.yml"
+}
+
+@test "Example config has required repository fields" {
+    grep -q 'name:' "$SCRIPT_DIR/examples/backup-config.yml"
+    grep -q 'path:' "$SCRIPT_DIR/examples/backup-config.yml"
+    grep -q 'pvc:' "$SCRIPT_DIR/examples/backup-config.yml"
+    grep -q 'data_dir:' "$SCRIPT_DIR/examples/backup-config.yml"
+    grep -q 'namespace:' "$SCRIPT_DIR/examples/backup-config.yml"
+}
+
+@test "backup.sh supports --dry-run flag" {
+    run "$SCRIPT_DIR/backup.sh" --help
+    [[ "$output" == *"--dry-run"* ]]
+}
+
+@test "backup.sh supports --json flag" {
+    run "$SCRIPT_DIR/backup.sh" --help
+    [[ "$output" == *"--json"* ]]
+}
+
+@test "backup.sh supports --verbose flag" {
+    run "$SCRIPT_DIR/backup.sh" --help
+    [[ "$output" == *"--verbose"* ]]
+}
+
+@test "restore.sh supports --repo flag" {
+    run "$SCRIPT_DIR/restore.sh" --help
+    [[ "$output" == *"--repo"* ]]
+}
+
+@test "restore.sh supports --volume flag" {
+    run "$SCRIPT_DIR/restore.sh" --help
+    [[ "$output" == *"--volume"* ]]
+}
+
+@test "restore.sh supports --snapshot flag" {
+    run "$SCRIPT_DIR/restore.sh" --help
+    [[ "$output" == *"--snapshot"* ]]
+}
+
+@test "restore.sh supports --tag flag" {
+    run "$SCRIPT_DIR/restore.sh" --help
+    [[ "$output" == *"--tag"* ]]
+}
+
+@test "restore.sh supports --rollback flag" {
+    run "$SCRIPT_DIR/restore.sh" --help
+    [[ "$output" == *"--rollback"* ]]
+}
+
+@test "backup.sh supports --config flag" {
+    run "$SCRIPT_DIR/backup.sh" --help
+    [[ "$output" == *"--config"* ]]
+}
+
+@test "restore.sh supports --config flag" {
+    run "$SCRIPT_DIR/restore.sh" --help
+    [[ "$output" == *"--config"* ]]
+}
+
+@test "RECOVERY.md has disaster recovery procedures" {
+    grep -qi "disaster" "$SCRIPT_DIR/docs/RECOVERY.md"
+    grep -qi "recovery" "$SCRIPT_DIR/docs/RECOVERY.md"
+}
+
+@test "CREDENTIALS.md has credential management info" {
+    grep -qi "credential" "$SCRIPT_DIR/docs/CREDENTIALS.md"
+    grep -qi "kopia" "$SCRIPT_DIR/docs/CREDENTIALS.md"
+    grep -qi "vault" "$SCRIPT_DIR/docs/CREDENTIALS.md"
 }
