@@ -1,20 +1,11 @@
 <!--
 Sync Impact Report
-Version change: 0.0.0 → 1.0.0 (MAJOR: initial ratification)
-Added principles: 10 core principles
-  - I. Data Must Outlive the Cluster
-  - II. Repository-Driven Infrastructure
-  - III. Vault Is the Secret Authority
-  - IV. Backup Must Be Locally Recoverable
-  - V. Recovery Over Backup
-  - VI. Consistency Over Convenience
-  - VII. Dependency-Aware Recovery
-  - VIII. Minimal Secret Duplication
-  - IX. Idempotent Automation
-  - X. Simple, Explicit Operations
-Added sections: Engineering Standards, Success Principle, Governance
+Version change: 1.0.0 → 1.0.1 (PATCH: wording clarification)
+Added principles: none
 Removed sections: none
-Modified sections: none
+Modified sections:
+  - I. Data Must Outlive the Cluster: "host filesystem location" → "Mac filesystem location"
+  - IV. Backup Must Be Locally Recoverable: "on the local host" → "on the Mac"
 Deferred items: none
 -->
 
@@ -25,7 +16,7 @@ Deferred items: none
 ### I. Data Must Outlive the Cluster
 The k3d cluster is disposable. No critical data may exist only inside Kubernetes, k3d, Docker, or cluster-managed storage.
 
-All persistent application data MUST have a deterministic host filesystem location and MUST be recoverable after complete cluster destruction.
+All persistent application data MUST have a deterministic Mac filesystem location and MUST be recoverable after complete cluster destruction.
 
 ### II. Repository-Driven Infrastructure
 `~/projects/repos` is the source of truth for declarative infrastructure and application configuration.
@@ -38,7 +29,7 @@ HashiCorp Vault is the sole source of truth for application secret values.
 Secrets managed by Vault/ESO MUST NOT be duplicated in Git or backup artifacts. Vault recovery data, configuration, and required recovery/unseal material MUST be backed up securely.
 
 ### IV. Backup Must Be Locally Recoverable
-All backups MUST remain on the local host and MUST be encrypted, deduplicated, integrity-checkable, and versioned.
+All backups MUST remain on the Mac and MUST be encrypted, deduplicated, integrity-checkable, and versioned.
 
 Kopia is the sole backup engine.
 
@@ -108,4 +99,4 @@ Amendments require:
 
 Compliance is verified through specification review and implementation checklist validation.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-17 | **Last Amended**: 2026-08-17
+**Version**: 1.0.1 | **Ratified**: 2026-08-17 | **Last Amended**: 2026-08-17
