@@ -6,8 +6,8 @@
 set -euo pipefail
 
 # DNS state
-declare -g DNS_ORIGINAL=""
-declare -g DNS_REPLACEMENT=""
+declare DNS_ORIGINAL=""
+declare DNS_REPLACEMENT=""
 
 # Initialize DNS suffix
 # Usage: dns_init <dns_suffix>

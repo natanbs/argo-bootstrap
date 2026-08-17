@@ -7,25 +7,29 @@
 set -euo pipefail
 
 # Configuration state
-declare -g CONFIG_FILE=""
-declare -g CONFIG_VERSION=""
-declare -g CONFIG_REPOSITORIES=""
-declare -g CONFIG_KOPIA=""
-declare -g CONFIG_VAULT=""
-declare -g CONFIG_DATABASE_HOOKS=""
-declare -g CONFIG_PORT_OFFSET="0"
-declare -g CONFIG_DNS_SUFFIX=""
+declare CONFIG_FILE=""
+declare CONFIG_VERSION=""
+declare CONFIG_REPOSITORIES=""
+declare CONFIG_KOPIA=""
+declare CONFIG_VAULT=""
+declare CONFIG_DATABASE_HOOKS=""
+declare CONFIG_PORT_OFFSET="0"
+declare CONFIG_DNS_SUFFIX=""
 
 # Default values
-declare -A DEFAULTS=(
-    ["kopia.retention.daily"]="7"
-    ["kopia.retention.weekly"]="4"
-    ["kopia.retention.monthly"]="12"
-    ["vault.namespace"]="vault"
-    ["database_hooks.timeout"]="300"
-    ["database_hooks.mandatory"]="true"
-    ["port_offset"]="0"
-)
+_get_default() {
+    local key="$1"
+    case "$key" in
+        kopia.retention.daily) echo "7" ;;
+        kopia.retention.weekly) echo "4" ;;
+        kopia.retention.monthly) echo "12" ;;
+        vault.namespace) echo "vault" ;;
+        database_hooks.timeout) echo "300" ;;
+        database_hooks.mandatory) echo "true" ;;
+        port_offset) echo "0" ;;
+        *) echo "" ;;
+    esac
+}
 
 # Load configuration from YAML file
 # Usage: config_load <config_file>
@@ -81,7 +85,7 @@ _load_config_values() {
 
     # Load port offset
     CONFIG_PORT_OFFSET="$(yq eval '.port_offset // empty' "$CONFIG_FILE")"
-    [[ -z "$CONFIG_PORT_OFFSET" ]] && CONFIG_PORT_OFFSET="${DEFAULTS[port_offset]}"
+    [[ -z "$CONFIG_PORT_OFFSET" ]] && CONFIG_PORT_OFFSET="$(_get_default "port_offset")"
 
     # Load DNS suffix
     CONFIG_DNS_SUFFIX="$(yq eval '.dns_suffix // empty' "$CONFIG_FILE")"
@@ -278,30 +282,30 @@ config_get() {
             ;;
         kopia.retention.daily)
             value="$(yq eval '.kopia.retention.daily // empty' "$CONFIG_FILE")"
-            [[ -z "$value" ]] && value="${DEFAULTS[kopia.retention.daily]}"
+            [[ -z "$value" ]] && value="$(_get_default "kopia.retention.daily")"
             ;;
         kopia.retention.weekly)
             value="$(yq eval '.kopia.retention.weekly // empty' "$CONFIG_FILE")"
-            [[ -z "$value" ]] && value="${DEFAULTS[kopia.retention.weekly]}"
+            [[ -z "$value" ]] && value="$(_get_default "kopia.retention.weekly")"
             ;;
         kopia.retention.monthly)
             value="$(yq eval '.kopia.retention.monthly // empty' "$CONFIG_FILE")"
-            [[ -z "$value" ]] && value="${DEFAULTS[kopia.retention.monthly]}"
+            [[ -z "$value" ]] && value="$(_get_default "kopia.retention.monthly")"
             ;;
         vault.namespace)
             value="$(yq eval '.vault.namespace // empty' "$CONFIG_FILE")"
-            [[ -z "$value" ]] && value="${DEFAULTS[vault.namespace]}"
+            [[ -z "$value" ]] && value="$(_get_default "vault.namespace")"
             ;;
         vault.unseal_key_path)
             value="$(yq eval '.vault.unseal_key_path // empty' "$CONFIG_FILE")"
             ;;
         database_hooks.timeout)
             value="$(yq eval '.database_hooks.timeout // empty' "$CONFIG_FILE")"
-            [[ -z "$value" ]] && value="${DEFAULTS[database_hooks.timeout]}"
+            [[ -z "$value" ]] && value="$(_get_default "database_hooks.timeout")"
             ;;
         database_hooks.mandatory)
             value="$(yq eval '.database_hooks.mandatory // empty' "$CONFIG_FILE")"
-            [[ -z "$value" ]] && value="${DEFAULTS[database_hooks.mandatory]}"
+            [[ -z "$value" ]] && value="$(_get_default "database_hooks.mandatory")"
             ;;
         port_offset)
             value="$CONFIG_PORT_OFFSET"

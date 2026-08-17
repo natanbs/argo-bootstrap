@@ -6,10 +6,10 @@
 set -euo pipefail
 
 # k3d state
-declare -g K3D_CLUSTER_NAME=""
-declare -g K3D_PORT_OFFSET="0"
-declare -g K3D_API_PORT="6443"
-declare -g K3D_REGISTRY_PORT="5000"
+declare K3D_CLUSTER_NAME=""
+declare K3D_PORT_OFFSET="0"
+declare K3D_API_PORT="6443"
+declare K3D_REGISTRY_PORT="5000"
 
 # Initialize k3d wrapper
 # Usage: k3d_init <cluster_name> [port_offset]

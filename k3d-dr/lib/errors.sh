@@ -5,44 +5,48 @@
 set -euo pipefail
 
 # Error codes
-declare -A ERROR_CODES=(
-    ["E001"]="Configuration file not found"
-    ["E002"]="Configuration file is not readable"
-    ["E003"]="Invalid YAML syntax in configuration"
-    ["E004"]="Configuration validation failed"
-    ["E005"]="Repository not found"
-    ["E006"]="Repository path does not exist"
-    ["E007"]="Repository is not readable"
-    ["E008"]="Kopia repository not initialized"
-    ["E009"]="Kopia password not set"
-    ["E010"]="Kopia repository corrupted"
-    ["E011"]="Vault is not running"
-    ["E012"]="Vault is sealed"
-    ["E013"]="Vault unseal key not found"
-    ["E014"]="Vault unseal key has wrong permissions"
-    ["E015"]="k3d is not installed"
-    ["E016"]="k3d cluster already exists"
-    ["E017"]="k3d cluster does not exist"
-    ["E018"]="Docker is not running"
-    ["E019"]="Lock acquisition failed"
-    ["E020"]="Lock is already held"
-    ["E021"]="Database hook failed"
-    ["E022"]="Database hook timed out"
-    ["E023"]="Port offset out of range"
-    ["E024"]="DNS suffix format invalid"
-    ["E025"]="Backup state file corrupted"
-    ["E026"]="Restore failed"
-    ["E027"]="Backup failed"
-    ["E028"]="Health check failed"
-    ["E029"]="Component not ready"
-    ["E030"]="Permission denied"
-)
+_get_error_message() {
+    local code="$1"
+    case "$code" in
+        E001) echo "Configuration file not found" ;;
+        E002) echo "Configuration file is not readable" ;;
+        E003) echo "Invalid YAML syntax in configuration" ;;
+        E004) echo "Configuration validation failed" ;;
+        E005) echo "Repository not found" ;;
+        E006) echo "Repository path does not exist" ;;
+        E007) echo "Repository is not readable" ;;
+        E008) echo "Kopia repository not initialized" ;;
+        E009) echo "Kopia password not set" ;;
+        E010) echo "Kopia repository corrupted" ;;
+        E011) echo "Vault is not running" ;;
+        E012) echo "Vault is sealed" ;;
+        E013) echo "Vault unseal key not found" ;;
+        E014) echo "Vault unseal key has wrong permissions" ;;
+        E015) echo "k3d is not installed" ;;
+        E016) echo "k3d cluster already exists" ;;
+        E017) echo "k3d cluster does not exist" ;;
+        E018) echo "Docker is not running" ;;
+        E019) echo "Lock acquisition failed" ;;
+        E020) echo "Lock is already held" ;;
+        E021) echo "Database hook failed" ;;
+        E022) echo "Database hook timed out" ;;
+        E023) echo "Port offset out of range" ;;
+        E024) echo "DNS suffix format invalid" ;;
+        E025) echo "Backup state file corrupted" ;;
+        E026) echo "Restore failed" ;;
+        E027) echo "Backup failed" ;;
+        E028) echo "Health check failed" ;;
+        E029) echo "Component not ready" ;;
+        E030) echo "Permission denied" ;;
+        *) echo "Unknown error" ;;
+    esac
+}
 
 # Error state
-declare -g LAST_ERROR_CODE=""
-declare -g LAST_ERROR_MESSAGE=""
-declare -g LAST_ERROR_COMPONENT=""
-declare -g LAST_ERROR_REMEDIATION=""
+declare LAST_ERROR_CODE=""
+declare LAST_ERROR_MESSAGE=""
+declare LAST_ERROR_COMPONENT=""
+declare LAST_ERROR_REMEDIATION=""
 
 # Create machine-readable error
 # Usage: error_create <error_code> <message> <component> [remediation]
@@ -127,8 +131,8 @@ error_report_auto() {
 
     # Try to find matching error code
     local error_code="E999"
-    for code in "${!ERROR_CODES[@]}"; do
-        if [[ "${ERROR_CODES[$code]}" == "$message" ]]; then
+    for code in E001 E002 E003 E004 E005 E006 E007 E008 E009 E010 E011 E012 E013 E014 E015 E016 E017 E018 E019 E020 E021 E022 E023 E024 E025 E026 E027 E028 E029 E030; do
+        if [[ "$(_get_error_message "$code")" == "$message" ]]; then
             error_code="$code"
             break
         fi
@@ -145,8 +149,8 @@ error_report_with_remediation() {
     local remediation="$3"
 
     local error_code="E999"
-    for code in "${!ERROR_CODES[@]}"; do
-        if [[ "${ERROR_CODES[$code]}" == "$message" ]]; then
+    for code in E001 E002 E003 E004 E005 E006 E007 E008 E009 E010 E011 E012 E013 E014 E015 E016 E017 E018 E019 E020 E021 E022 E023 E024 E025 E026 E027 E028 E029 E030; do
+        if [[ "$(_get_error_message "$code")" == "$message" ]]; then
             error_code="$code"
             break
         fi
@@ -167,12 +171,12 @@ _json_escape() {
 }
 
 # Export functions
-export -f error_create error_report error_get_last error_clear error_is error_report_auto error_report_with_remediation
-export ERROR_CODES LAST_ERROR_CODE LAST_ERROR_MESSAGE LAST_ERROR_COMPONENT LAST_ERROR_REMEDIATION
+export -f error_create error_report error_get_last error_clear error_is error_report_auto error_report_with_remediation _get_error_message
+export LAST_ERROR_CODE LAST_ERROR_MESSAGE LAST_ERROR_COMPONENT LAST_ERROR_REMEDIATION
 
 # Partial failure tracking (FR-049)
-declare -g PARTIAL_FAILURES=()
-declare -g PARTIAL_FAILURE_COUNT=0
+declare PARTIAL_FAILURES=()
+declare PARTIAL_FAILURE_COUNT=0
 
 # Add partial failure
 # Usage: error_add_partial <component> <message> [remediation]

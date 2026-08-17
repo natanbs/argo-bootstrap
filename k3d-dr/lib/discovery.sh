@@ -5,8 +5,8 @@
 set -euo pipefail
 
 # Discovery state
-declare -g DISCOVERY_INFRA_DIR=""
-declare -g DISCOVERY_APPS=()
+declare DISCOVERY_INFRA_DIR=""
+declare DISCOVERY_APPS=()
 
 # Initialize discovery
 # Usage: discovery_init <infra_dir>

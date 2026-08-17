@@ -5,8 +5,8 @@
 set -euo pipefail
 
 # Metadata state
-declare -g METADATA_FILE=""
-declare -g METADATA_DIR=""
+declare METADATA_FILE=""
+declare METADATA_DIR=""
 
 # Initialize metadata collection
 # Usage: metadata_init <backup_dir>

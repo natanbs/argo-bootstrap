@@ -5,9 +5,9 @@
 set -euo pipefail
 
 # Registry state
-declare -g REGISTRY_NAME=""
-declare -g REGISTRY_PORT="5000"
-declare -g REGISTRY_HOST_DIR=""
+declare REGISTRY_NAME=""
+declare REGISTRY_PORT="5000"
+declare REGISTRY_HOST_DIR=""
 
 # Initialize registry
 # Usage: registry_init <cluster_name> <port>

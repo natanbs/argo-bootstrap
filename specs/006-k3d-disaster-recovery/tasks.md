@@ -184,7 +184,7 @@
 - [x] T074 [ASYNC] Write unit tests for lib/config.sh in k3d-dr/tests/unit/config_test.bats
 - [x] T075 [ASYNC] Write unit tests for lib/kopia.sh in k3d-dr/tests/unit/kopia_test.bats
 - [x] T076 [ASYNC] Write unit tests for lib/vault.sh in k3d-dr/tests/unit/vault_test.bats
-- [ ] T077 [SYNC] Write integration test for full recovery in k3d-dr/tests/integration/full_recovery.bats
+- [x] T077 [SYNC] Write integration test for full recovery in k3d-dr/tests/integration/full_recovery.bats
 
 ---
 

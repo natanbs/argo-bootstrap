@@ -6,10 +6,10 @@
 set -euo pipefail
 
 # Port configuration
-declare -g PORT_OFFSET="0"
-declare -g PORT_API_BASE="6443"
-declare -g PORT_NODEPORT_START="30000"
-declare -g PORT_NODEPORT_END="32767"
+declare PORT_OFFSET="0"
+declare PORT_API_BASE="6443"
+declare PORT_NODEPORT_START="30000"
+declare PORT_NODEPORT_END="32767"
 
 # Initialize port offset
 # Usage: ports_init <offset>

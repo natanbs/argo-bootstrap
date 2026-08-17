@@ -17,12 +17,16 @@ LOG_LEVEL="${LOG_LEVEL:-$LOG_LEVEL_INFO}"
 LOG_FILE="${LOG_FILE:-}"
 
 # Color codes for terminal output
-declare -A COLORS=(
-    ["debug"]="\033[36m"   # Cyan
-    ["info"]="\033[32m"    # Green
-    ["warn"]="\033[33m"    # Yellow
-    ["error"]="\033[31m"   # Red
-)
+_get_color() {
+    local level="$1"
+    case "$level" in
+        debug) echo "\033[36m" ;;   # Cyan
+        info) echo "\033[32m" ;;    # Green
+        warn) echo "\033[33m" ;;    # Yellow
+        error) echo "\033[31m" ;;   # Red
+        *) echo "" ;;
+    esac
+}
 COLOR_RESET="\033[0m"
 
 # Check if a log level should be emitted
@@ -87,7 +91,9 @@ _log() {
 
     # Output to stdout with color (if terminal supports it)
     if [[ -t 1 ]]; then
-        echo -e "${COLORS[$level]}${json}${COLOR_RESET}"
+        local color
+        color="$(_get_color "$level")"
+        echo -e "${color}${json}${COLOR_RESET}"
     else
         echo "$json"
     fi

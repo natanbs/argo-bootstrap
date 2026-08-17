@@ -10,7 +10,7 @@ LOCK_FILE_BACKUP="${LOCK_DIR}/backup.lock"
 LOCK_FILE_RESTORE="${LOCK_DIR}/restore.lock"
 
 # Lock file descriptor
-declare -g LOCK_FD=""
+declare LOCK_FD=""
 
 # Initialize lock directory
 _init_lock_dir() {

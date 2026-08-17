@@ -5,8 +5,8 @@
 set -euo pipefail
 
 # Kubernetes state
-declare -g KUBECTL_NAMESPACE=""
-declare -g KUBECTL_CONTEXT=""
+declare KUBECTL_NAMESPACE=""
+declare KUBECTL_CONTEXT=""
 
 # Initialize Kubernetes wrapper
 # Usage: kubernetes_init <context> [namespace]

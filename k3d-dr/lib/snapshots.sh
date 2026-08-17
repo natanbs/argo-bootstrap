@@ -5,8 +5,8 @@
 set -euo pipefail
 
 # Snapshot selection state
-declare -g SNAPSHOT_LIST=""
-declare -g SNAPSHOT_COUNT="0"
+declare SNAPSHOT_LIST=""
+declare SNAPSHOT_COUNT="0"
 
 # List all snapshots
 # Usage: snapshots_list_all [path] [tag]

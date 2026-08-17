@@ -5,8 +5,8 @@
 set -euo pipefail
 
 # State file path
-declare -g STATE_FILE=""
-declare -g STATE_DIR=""
+declare STATE_FILE=""
+declare STATE_DIR=""
 
 # Initialize state tracking
 # Usage: state_init <backup_dir>

@@ -6,8 +6,8 @@
 set -euo pipefail
 
 # Health check state
-declare -g HEALTH_CHECK_TIMEOUT="120"
-declare -g HEALTH_CHECK_INTERVAL="5"
+declare HEALTH_CHECK_TIMEOUT="120"
+declare HEALTH_CHECK_INTERVAL="5"
 
 # Initialize health check
 # Usage: health_init <timeout_seconds> [interval_seconds]

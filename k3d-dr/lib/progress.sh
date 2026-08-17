@@ -6,11 +6,11 @@
 set -euo pipefail
 
 # Progress tracking state
-declare -g PROGRESS_TOTAL=0
-declare -g PROGRESS_CURRENT=0
-declare -g PROGRESS_PHASE=""
-declare -g PROGRESS_START_TIME=""
-declare -g PROGRESS_OPERATION=""
+declare PROGRESS_TOTAL=0
+declare PROGRESS_CURRENT=0
+declare PROGRESS_PHASE=""
+declare PROGRESS_START_TIME=""
+declare PROGRESS_OPERATION=""
 
 # Initialize progress tracking
 # Usage: progress_init <total> <operation> <phase>
@@ -139,9 +139,9 @@ progress_create_tracker() {
     local total_phases="$1"
     local operation="$2"
 
-    declare -g PROGRESS_TRACKER_TOTAL="$total_phases"
-    declare -g PROGRESS_TRACKER_CURRENT=0
-    declare -g PROGRESS_TRACKER_OPERATION="$operation"
+    declare PROGRESS_TRACKER_TOTAL="$total_phases"
+    declare PROGRESS_TRACKER_CURRENT=0
+    declare PROGRESS_TRACKER_OPERATION="$operation"
 }
 
 # Update phase progress

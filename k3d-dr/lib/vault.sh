@@ -7,8 +7,8 @@
 set -euo pipefail
 
 # Vault state
-declare -g VAULT_NAMESPACE="vault"
-declare -g VAULT_UNSEAL_KEY_PATH=""
+declare VAULT_NAMESPACE="vault"
+declare VAULT_UNSEAL_KEY_PATH=""
 
 # Initialize Vault wrapper
 # Usage: vault_init <namespace> [unseal_key_path]

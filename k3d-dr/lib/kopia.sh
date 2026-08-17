@@ -7,8 +7,8 @@
 set -euo pipefail
 
 # Kopia state
-declare -g KOPIA_REPO_PATH=""
-declare -g KOPIA_PASSWORD=""
+declare KOPIA_REPO_PATH=""
+declare KOPIA_PASSWORD=""
 
 # Initialize Kopia wrapper
 # Usage: kopia_init <repo_path> <password_env>

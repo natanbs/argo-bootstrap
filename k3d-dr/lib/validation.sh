@@ -7,8 +7,8 @@
 set -euo pipefail
 
 # Validation state
-declare -g VALIDATION_ERRORS=()
-declare -g VALIDATION_WARNINGS=()
+declare VALIDATION_ERRORS=()
+declare VALIDATION_WARNINGS=()
 
 # Initialize validation
 validation_init() {
