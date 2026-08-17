@@ -154,14 +154,14 @@
 
 ### Implementation for User Story 5
 
-- [ ] T056 [SYNC] [US5] Implement Vault Raft snapshot restore in k3d-dr/lib/vault.sh (FR-006, FR-030)
-- [ ] T057 [SYNC] [US5] Implement Vault auto-unseal with stored key in k3d-dr/lib/vault.sh (FR-030, FR-031)
-- [ ] T058 [ASYNC] [US5] Implement Vault seal status check in k3d-dr/lib/vault.sh
-- [ ] T059 [ASYNC] [US5] Implement Vault health wait in k3d-dr/lib/vault.sh (FR-035)
-- [ ] T060 [ASYNC] [US5] Implement ESO readiness verification in k3d-dr/lib/health.sh (FR-034)
+- [x] T056 [SYNC] [US5] Implement Vault Raft snapshot restore in k3d-dr/lib/vault.sh (FR-006, FR-030)
+- [x] T057 [SYNC] [US5] Implement Vault auto-unseal with stored key in k3d-dr/lib/vault.sh (FR-030, FR-031)
+- [x] T058 [ASYNC] [US5] Implement Vault seal status check in k3d-dr/lib/vault.sh
+- [x] T059 [ASYNC] [US5] Implement Vault health wait in k3d-dr/lib/vault.sh (FR-035)
+- [x] T060 [ASYNC] [US5] Implement ESO readiness verification in k3d-dr/lib/health.sh (FR-034)
 - [ ] T061 [ASYNC] [US5] Implement ESO connectivity check in k3d-dr/lib/health.sh
 - [ ] T062 [ASYNC] [US5] Implement Secret generation verification in k3d-dr/lib/health.sh
-- [ ] T063 [ASYNC] [US5] Implement Vault Kubernetes auth verification in k3d-dr/lib/vault.sh (FR-024)
+- [x] T063 [ASYNC] [US5] Implement Vault Kubernetes auth verification in k3d-dr/lib/vault.sh (FR-024)
 
 **Checkpoint**: Vault recovery chain working end-to-end
 
@@ -171,10 +171,10 @@
 
 **Purpose**: Documentation, testing, and hardening
 
-- [ ] T064 [SYNC] Create recovery procedures documentation in k3d-dr/docs/RECOVERY.md (FR-022)
-- [ ] T065 [SYNC] Create credential management guide in k3d-dr/docs/CREDENTIALS.md (FR-022)
-- [ ] T066 [ASYNC] Create project README in k3d-dr/README.md
-- [ ] T067 [ASYNC] Create backup-config.yml example in k3d-dr/examples/backup-config.yml
+- [x] T064 [SYNC] Create recovery procedures documentation in k3d-dr/docs/RECOVERY.md (FR-022)
+- [x] T065 [SYNC] Create credential management guide in k3d-dr/docs/CREDENTIALS.md (FR-022)
+- [x] T066 [ASYNC] Create project README in k3d-dr/README.md
+- [x] T067 [ASYNC] Create backup-config.yml example in k3d-dr/examples/backup-config.yml
 - [ ] T068 [ASYNC] Implement deterministic alphabetical repository ordering in k3d-dr/lib/backup.sh (FR-042)
 - [ ] T069 [ASYNC] Implement idempotency checks in k3d-dr/lib/restore.sh (FR-043)
 - [ ] T070 [ASYNC] Add JSON output mode to backup.sh and restore.sh (--json flag) (FR-015)
