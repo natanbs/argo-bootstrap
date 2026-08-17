@@ -199,6 +199,33 @@ vault_verify_health() {
     vault token lookup -namespace "$VAULT_NAMESPACE" &>/dev/null
 }
 
+# Check Vault connectivity
+# Usage: vault_check_connectivity
+vault_check_connectivity() {
+    if ! command -v vault &>/dev/null; then
+        return 1
+    fi
+
+    if ! vault_is_running; then
+        return 1
+    fi
+
+    # Try to get status
+    vault status -namespace "$VAULT_NAMESPACE" &>/dev/null
+}
+
+# Get Vault version
+# Usage: vault_get_version
+vault_get_version() {
+    vault version 2>/dev/null | head -1
+}
+
+# Check if Vault has Raft storage
+# Usage: vault_has_raft
+vault_has_raft() {
+    vault status -namespace "$VAULT_NAMESPACE" -format=json 2>/dev/null | jq -r '.storage_type == "raft"' 2>/dev/null || echo "false"
+}
+
 # Export functions
-export -f vault_init vault_is_running vault_is_sealed vault_status vault_save_snapshot vault_restore_snapshot vault_auto_unseal vault_save_policies vault_restore_policies vault_save_auth vault_restore_auth vault_get_kubernetes_auth vault_verify_health
+export -f vault_init vault_is_running vault_is_sealed vault_status vault_save_snapshot vault_restore_snapshot vault_auto_unseal vault_save_policies vault_restore_policies vault_save_auth vault_restore_auth vault_get_kubernetes_auth vault_verify_health vault_check_connectivity vault_get_version vault_has_raft
 export VAULT_NAMESPACE VAULT_UNSEAL_KEY_PATH

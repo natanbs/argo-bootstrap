@@ -161,6 +161,33 @@ kopia_snapshot_count() {
     $cmd | wc -l
 }
 
+# Check if repository is accessible
+# Usage: kopia_check_access
+kopia_check_access() {
+    if [[ ! -d "$KOPIA_REPO_PATH" ]]; then
+        return 1
+    fi
+
+    if [[ ! -r "$KOPIA_REPO_PATH" ]]; then
+        return 1
+    fi
+
+    # Try to connect to repository
+    kopia repository connect filesystem --path "$KOPIA_REPO_PATH" --password "$KOPIA_PASSWORD" &>/dev/null
+}
+
+# Get repository status
+# Usage: kopia_status
+kopia_status() {
+    kopia repository status 2>/dev/null || echo "disconnected"
+}
+
+# Check if repository is initialized
+# Usage: kopia_is_initialized
+kopia_is_initialized() {
+    [[ -f "$KOPIA_REPO_PATH/kopia.config" ]]
+}
+
 # Export functions
-export -f kopia_init kopia_connect kopia_snapshot kopia_restore kopia_list_snapshots kopia_get_latest_snapshot kopia_get_snapshot_by_timestamp kopia_get_snapshots_by_tag kopia_verify kopia_retention kopia_delete_old_snapshots kopia_info kopia_snapshot_count
+export -f kopia_init kopia_connect kopia_snapshot kopia_restore kopia_list_snapshots kopia_get_latest_snapshot kopia_get_snapshot_by_timestamp kopia_get_snapshots_by_tag kopia_verify kopia_retention kopia_delete_old_snapshots kopia_info kopia_snapshot_count kopia_check_access kopia_status kopia_is_initialized
 export KOPIA_REPO_PATH KOPIA_PASSWORD

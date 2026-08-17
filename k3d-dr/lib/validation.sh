@@ -263,6 +263,14 @@ validate_all() {
         validate_pvc_exists "$pvc" "$namespace"
         validate_hook_script "$db_hook" "$name" "backup"
         validate_hook_script "$db_restore_hook" "$name" "restore"
+
+        # Validate hook checksums (T053)
+        if [[ -n "$db_hook" ]]; then
+            validate_hook_checksum "$db_hook" "$name" "backup"
+        fi
+        if [[ -n "$db_restore_hook" ]]; then
+            validate_hook_checksum "$db_restore_hook" "$name" "restore"
+        fi
     done
 
     # Validate Kopia
@@ -300,6 +308,137 @@ validate_all() {
     return 0
 }
 
+# Validate hook checksum (T053)
+# Usage: validate_hook_checksum <script_path> <name> <type>
+validate_hook_checksum() {
+    local script_path="$1"
+    local name="$2"
+    local type="$3"
+
+    if [[ ! -f "$script_path" ]]; then
+        return 0
+    fi
+
+    # Calculate checksum
+    local checksum
+    checksum="$(sha256sum "$script_path" 2>/dev/null | awk '{print $1}')"
+
+    if [[ -z "$checksum" ]]; then
+        validation_add_warning "$type hook checksum cannot be calculated: $script_path (repo: $name)"
+        return 0
+    fi
+
+    # Store checksum in metadata if available
+    if command -v metadata_init &>/dev/null; then
+        local metadata_dir
+        metadata_dir="$(config_get "metadata_dir")"
+        if [[ -n "$metadata_dir" ]]; then
+            mkdir -p "$metadata_dir"
+            echo "$checksum $script_path" >> "$metadata_dir/hook-checksums.txt"
+        fi
+    fi
+
+    return 0
+}
+
+# Validate secret-free configuration (FR-047)
+# Usage: validate_no_secrets <config_file>
+validate_no_secrets() {
+    local config_file="$1"
+
+    if [[ ! -f "$config_file" ]]; then
+        validation_add_error "Configuration file does not exist: $config_file"
+        return 1
+    fi
+
+    # Check for common secret patterns
+    local secret_patterns=(
+        'password'
+        'secret'
+        'token'
+        'api_key'
+        'apikey'
+        'access_key'
+        'private_key'
+    )
+
+    local found_secrets=0
+
+    for pattern in "${secret_patterns[@]}"; do
+        if grep -qi "$pattern" "$config_file" 2>/dev/null; then
+            # Check if it's in a value (not a key or comment)
+            if grep -qi "^[^#]*$pattern.*:" "$config_file" 2>/dev/null; then
+                validation_add_warning "Configuration file contains potential secret reference: $pattern"
+                found_secrets=$((found_secrets + 1))
+            fi
+        fi
+    done
+
+    if [[ $found_secrets -gt 0 ]]; then
+        log_warn "Configuration file contains potential secret references. Consider using environment variables or external secrets." "validation"
+    fi
+
+    return 0
+}
+
+# Validate Kubernetes cluster connectivity (T061)
+# Usage: validate_kubernetes_connectivity
+validate_kubernetes_connectivity() {
+    if ! kubectl cluster-info &>/dev/null 2>&1; then
+        validation_add_warning "Kubernetes cluster is not accessible"
+        return 1
+    fi
+
+    return 0
+}
+
+# Validate ESO connectivity (T061)
+# Usage: validate_eso_connectivity
+validate_eso_connectivity() {
+    # Check if ESO is installed
+    if ! kubectl get deployment external-secrets -n external-secrets &>/dev/null 2>&1; then
+        validation_add_warning "External Secrets Operator is not installed"
+        return 0
+    fi
+
+    # Check if ESO is running
+    local ready
+    ready="$(kubectl get deployment external-secrets -n external-secrets -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")"
+
+    if [[ "$ready" -eq 0 ]]; then
+        validation_add_warning "External Secrets Operator is not ready"
+        return 1
+    fi
+
+    return 0
+}
+
+# Validate Secret generation (T062)
+# Usage: validate_secret_generation <namespace>
+validate_secret_generation() {
+    local namespace="${1:-default}"
+
+    # Check if there are any ExternalSecret resources
+    local secret_count
+    secret_count="$(kubectl get externalsecrets -n "$namespace" --no-headers 2>/dev/null | wc -l || echo "0")"
+
+    if [[ "$secret_count" -eq 0 ]]; then
+        validation_add_warning "No ExternalSecret resources found in namespace: $namespace"
+        return 0
+    fi
+
+    # Check if secrets are ready
+    local ready_count
+    ready_count="$(kubectl get externalsecrets -n "$namespace" -o jsonpath='{.items[*].status.conditions[*].status}' 2>/dev/null | grep -o "True" | wc -l || echo "0")"
+
+    if [[ "$ready_count" -ne "$secret_count" ]]; then
+        validation_add_warning "Not all ExternalSecrets are ready in namespace: $namespace"
+        return 1
+    fi
+
+    return 0
+}
+
 # Export functions
-export -f validation_init validation_add_error validation_add_warning validation_passed validation_get_errors validation_get_warnings validate_repository_path validate_data_dir_separation validate_pvc_exists validate_namespace_exists validate_hook_script validate_kopia_repository validate_vault_unseal_key validate_port_offset validate_dns_suffix validate_all
+export -f validation_init validation_add_error validation_add_warning validation_passed validation_get_errors validation_get_warnings validate_repository_path validate_data_dir_separation validate_pvc_exists validate_namespace_exists validate_hook_script validate_kopia_repository validate_vault_unseal_key validate_port_offset validate_dns_suffix validate_all validate_hook_checksum validate_no_secrets validate_kubernetes_connectivity validate_eso_connectivity validate_secret_generation
 export VALIDATION_ERRORS VALIDATION_WARNINGS
