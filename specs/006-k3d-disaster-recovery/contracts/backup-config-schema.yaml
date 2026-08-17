@@ -1,0 +1,46 @@
+# Backup Configuration Schema
+#
+# Version: 1.0
+# Date: 2026-08-17
+# Feature: 006-k3d-disaster-recovery
+#
+# This document defines the YAML schema for backup-config.yml.
+# Validation is performed using yq and custom validation logic.
+
+# Schema version (required)
+version: "1.0"
+
+# Repository mappings (required, minimum 1 entry)
+repositories:
+  - name: string          # Unique repository identifier (required)
+    path: string          # Absolute path to repository on host (required)
+    pvc: string           # PersistentVolumeClaim name (required)
+    data_dir: string      # Mount path inside container (required)
+    namespace: string     # Kubernetes namespace (required)
+    db_hook: string       # Path to database backup hook script (optional)
+    db_restore_hook: string  # Path to database restore hook script (optional)
+
+# Kopia settings (required)
+kopia:
+  repository_path: string  # Absolute path to Kopia repository (required)
+  password_env: string     # Environment variable containing Kopia password (required)
+  retention:
+    daily: integer         # Number of daily snapshots to keep (default: 7)
+    weekly: integer        # Number of weekly snapshots to keep (default: 4)
+    monthly: integer       # Number of monthly snapshots to keep (default: 12)
+
+# Vault settings (optional)
+vault:
+  namespace: string        # Vault namespace (default: "vault")
+  unseal_key_path: string  # Path to unseal key file (optional)
+
+# Database hook settings (optional)
+database_hooks:
+  timeout: integer         # Hook execution timeout in seconds (default: 300)
+  mandatory: boolean       # Whether hook failure fails backup (default: true)
+
+# Port offset for parallel clusters (optional, 0-65000, default: 0)
+port_offset: integer
+
+# DNS suffix override (optional, pattern: "<original>=<replacement>")
+dns_suffix: string
