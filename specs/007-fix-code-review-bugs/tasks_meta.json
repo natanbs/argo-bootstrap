@@ -1,0 +1,66 @@
+{
+  "feature": "007-fix-code-review-bugs",
+  "created": "2026-08-18T01:12:29+03:00",
+  "tasks": {
+    "T003": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:13:30+03:00",
+      "completed_at": "2026-08-18T01:13:35+03:00",
+      "result_summary": "Fixed validate_no_secrets to only match values after colon, not key names"
+    },
+    "T005": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:14:05+03:00",
+      "completed_at": "2026-08-18T01:14:05+03:00",
+      "result_summary": "Modified config_get to check env overrides before YAML values for kopia.password_env, vault.unseal_key_path, and database_hooks.mandatory"
+    },
+    "T007": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:14:25+03:00",
+      "completed_at": "2026-08-18T01:14:25+03:00",
+      "result_summary": "Fixed Vault K8s auth to read CA cert from service account path instead of stdin"
+    },
+    "T009": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:14:43+03:00",
+      "completed_at": "2026-08-18T01:14:43+03:00",
+      "result_summary": "Added latest parameter to kopia_retention, mapped to --keep-latest independently"
+    },
+    "T010": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:15:11+03:00",
+      "completed_at": "2026-08-18T01:15:11+03:00",
+      "result_summary": "Updated kopia_retention call in backup.sh to pass retention.latest config value"
+    },
+    "T013": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:15:57+03:00",
+      "completed_at": "2026-08-18T01:15:57+03:00",
+      "result_summary": "Fixed idempotency check to handle empty pod_name gracefully, falling through to restore"
+    },
+    "T015": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:16:27+03:00",
+      "completed_at": "2026-08-18T01:16:27+03:00",
+      "result_summary": "Removed dead code (redundant config re-sourcing) in validate_cross_field"
+    },
+    "T016": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:17:04+03:00",
+      "completed_at": "2026-08-18T01:17:04+03:00",
+      "result_summary": "Extracted _format_log_entry helper to eliminate duplicate JSON/text construction"
+    },
+    "T018": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:17:30+03:00",
+      "completed_at": "2026-08-18T01:17:30+03:00",
+      "result_summary": "All 6 modified scripts pass bash -n syntax validation"
+    },
+    "T019": {
+      "status": "completed",
+      "started_at": "2026-08-18T01:18:37+03:00",
+      "completed_at": "2026-08-18T01:18:37+03:00",
+      "result_summary": "Unit tests run: 42/63 failures are pre-existing (yq v3 // empty syntax), no regressions from bug fixes"
+    }
+  }
+}

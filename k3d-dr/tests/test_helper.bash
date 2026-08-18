@@ -10,10 +10,21 @@ setup() {
     TEST_TMPDIR="$(mktemp -d)"
     source "$LIB_DIR/logging.sh"
     source "$LIB_DIR/errors.sh"
+    source "$LIB_DIR/config.sh"
+    source "$LIB_DIR/kopia.sh"
+    source "$LIB_DIR/vault.sh"
+    source "$LIB_DIR/k3d.sh"
+    source "$LIB_DIR/kubernetes.sh"
     source "$LIB_DIR/progress.sh"
     source "$LIB_DIR/lock.sh"
     source "$LIB_DIR/ports.sh"
     source "$LIB_DIR/dns.sh"
+    source "$LIB_DIR/metadata.sh"
+    source "$LIB_DIR/snapshots.sh"
+    source "$LIB_DIR/state.sh"
+    source "$LIB_DIR/registry.sh"
+    source "$LIB_DIR/health.sh"
+    source "$LIB_DIR/validation.sh"
 }
 
 # Cleanup temporary directory

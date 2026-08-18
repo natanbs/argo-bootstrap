@@ -23,6 +23,8 @@ source "$LIB_DIR/progress.sh"
 source "$LIB_DIR/ports.sh"
 source "$LIB_DIR/dns.sh"
 source "$LIB_DIR/validation.sh"
+source "$LIB_DIR/state.sh"
+source "$LIB_DIR/metadata.sh"
 
 # Parse command line arguments
 parse_args() {
@@ -38,6 +40,10 @@ parse_args() {
                 ;;
             --json)
                 JSON_OUTPUT=true
+                shift
+                ;;
+            --resume)
+                RESUME_MODE=true
                 shift
                 ;;
             --dry-run)
@@ -66,6 +72,7 @@ Options:
   -c, --config FILE    Configuration file (default: backup-config.yml)
   -v, --verbose        Enable debug logging
   --json               Output in JSON format
+  --resume             Resume interrupted backup (skip completed phases)
   --dry-run            Perform validation only, don't backup
   -h, --help           Show this help message
 
@@ -85,6 +92,7 @@ EOF
 # State variables
 JSON_OUTPUT=false
 DRY_RUN=false
+RESUME_MODE=false
 
 # Main backup workflow
 main() {
@@ -99,24 +107,24 @@ main() {
         log_info "Starting backup" "backup"
     fi
 
-    # Acquire exclusive lock
+    # Acquire exclusive lock (exit code 6: lock acquisition failed)
     lock_acquire "backup" || {
         log_error "Failed to acquire backup lock" "backup"
-        exit 1
+        exit 6
     }
 
     trap 'lock_release "backup"' EXIT
 
-    # Load and validate configuration
+    # Load and validate configuration (exit code 2: config validation failed)
     config_load "$config_file" || {
         log_error "Configuration validation failed" "backup"
-        exit 1
+        exit 2
     }
 
-    # Validate paths and dependencies
+    # Validate paths and dependencies (exit code 2: config validation failed)
     validate_all "$config_file" || {
         log_error "Path validation failed" "backup"
-        exit 1
+        exit 2
     }
 
     # Dry-run mode: Output validation results and exit
@@ -131,34 +139,93 @@ main() {
     # Initialize libraries
     _init_libraries
 
+    # Initialize state tracking for resume support (FR-047)
+    local backup_dir
+    backup_dir="$(config_get "kopia.repository_path")"
+    state_init "$backup_dir"
+
+    # Initialize metadata collection (FR-011)
+    metadata_init "$backup_dir"
+
+    if $RESUME_MODE; then
+        local completed
+        completed="$(state_get_completed)"
+        if [[ -n "$completed" ]]; then
+            log_info "Resuming backup - skipping completed phases" "backup" '{"resume":"true","completed_phases":"'"$(echo "$completed" | tr '\n' ',')"'}'
+        fi
+    fi
+
     # Initialize progress tracking
     local total_steps=5
     progress_init "$total_steps" "backup"
 
     # Step 1: Verify cluster and Vault status
-    progress_update 1 "Verifying cluster status"
-    _verify_cluster_status
+    if ! $RESUME_MODE || ! state_is_completed "verify_cluster"; then
+        progress_update 1 "Verifying cluster status"
+        _verify_cluster_status
+        state_mark_completed "verify_cluster"
+    else
+        log_info "Skipping verify_cluster (already completed)" "backup"
+    fi
 
     # Step 2: Backup Vault
-    progress_update 2 "Backing up Vault"
-    _backup_vault
+    if ! $RESUME_MODE || ! state_is_completed "backup_vault"; then
+        progress_update 2 "Backing up Vault"
+        _backup_vault
+        state_mark_completed "backup_vault"
+    else
+        log_info "Skipping backup_vault (already completed)" "backup"
+    fi
 
     # Step 3: Backup repositories
-    progress_update 3 "Backing up repositories"
-    _backup_repositories
+    if ! $RESUME_MODE || ! state_is_completed "backup_repositories"; then
+        progress_update 3 "Backing up repositories"
+        _backup_repositories
+        state_mark_completed "backup_repositories"
+    else
+        log_info "Skipping backup_repositories (already completed)" "backup"
+    fi
 
     # Step 4: Backup registry
-    progress_update 4 "Backing up registry"
-    _backup_registry
+    if ! $RESUME_MODE || ! state_is_completed "backup_registry"; then
+        progress_update 4 "Backing up registry"
+        _backup_registry
+        state_mark_completed "backup_registry"
+    else
+        log_info "Skipping backup_registry (already completed)" "backup"
+    fi
 
     # Step 5: Verify and report
-    progress_update 5 "Verifying backup"
-    _verify_backup
+    if ! $RESUME_MODE || ! state_is_completed "verify_backup"; then
+        progress_update 5 "Verifying backup"
+        _verify_backup
+        state_mark_completed "verify_backup"
+    else
+        log_info "Skipping verify_backup (already completed)" "backup"
+    fi
+
+    # Collect cluster metadata (FR-011)
+    metadata_collect || {
+        log_warn "Metadata collection failed" "backup"
+    }
+
+    # Apply retention policy (FR-013, FR-004)
+    local retention_daily retention_weekly retention_monthly retention_latest
+    retention_daily="$(config_get "retention.daily" 2>/dev/null || echo "7")"
+    retention_weekly="$(config_get "retention.weekly" 2>/dev/null || echo "4")"
+    retention_monthly="$(config_get "retention.monthly" 2>/dev/null || echo "12")"
+    retention_latest="$(config_get "retention.latest" 2>/dev/null || echo "")"
+    kopia_retention "$retention_daily" "$retention_weekly" "$retention_monthly" "$retention_latest" || {
+        log_warn "Failed to apply retention policy" "backup"
+    }
 
     progress_complete
 
     if $JSON_OUTPUT; then
-        # Output JSON summary
+        local partial_count=0
+        if error_has_partials 2>/dev/null; then
+            partial_count="$(error_get_partial_count)"
+        fi
         local summary
         summary="$(cat <<EOF
 {
@@ -166,7 +233,8 @@ main() {
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "repositories_backed_up": $(config_get "repositories.count"),
   "vault_backed_up": true,
-  "registry_backed_up": true
+  "registry_backed_up": true,
+  "partial_failures": $partial_count
 }
 EOF
 )"
@@ -231,12 +299,12 @@ _init_libraries() {
 
     kopia_init "$repo_path" "$password_env" || {
         log_error "Failed to initialize Kopia" "backup"
-        exit 1
+        exit 3
     }
 
-    kopia_connect || {
+    kopia_connect --kdf-argon2id || {
         log_error "Failed to connect to Kopia repository" "backup"
-        exit 1
+        exit 3
     }
 
     local vault_namespace
@@ -284,11 +352,11 @@ _backup_vault() {
     local backup_dir="$SCRIPT_DIR/backup/vault"
     mkdir -p "$backup_dir"
 
-    # Save Vault snapshot
+    # Save Vault snapshot (exit code 4: vault snapshot error)
     log_info "Saving Vault snapshot" "vault"
     vault_save_snapshot "$backup_dir/raft-snapshot.db" || {
         log_error "Failed to save Vault snapshot" "vault"
-        return 1
+        return 4
     }
 
     # Save Vault policies
@@ -303,15 +371,16 @@ _backup_vault() {
         log_warn "Failed to save some Vault auth configuration" "vault"
     }
 
-    # Backup Vault data with Kopia
+    # Backup Vault data with Kopia (exit code 4: vault snapshot error)
     log_info "Backing up Vault data with Kopia" "vault"
     kopia_snapshot "$backup_dir" "vault" || {
         log_error "Failed to backup Vault data" "vault"
-        return 1
+        return 4
     }
 }
 
-# Backup repositories (in deterministic alphabetical order - FR-042)
+# Backup repositories (in deterministic alphabetical order - FR-042, FR-049/054)
+# Non-critical failures continue to next repository; tracked via errors.sh
 _backup_repositories() {
     local repo_count
     repo_count="$(config_get "repositories.count")"
@@ -320,6 +389,8 @@ _backup_repositories() {
         log_warn "No repositories configured for backup" "backup"
         return 0
     fi
+
+    error_clear_partials
 
     # Get repository names and sort alphabetically for deterministic ordering
     local sorted_repos=()
@@ -332,21 +403,33 @@ _backup_repositories() {
     # Sort repository names
     IFS=$'\n' sorted_repos=($(sort <<<"${sorted_repos[*]}")); unset IFS
 
+    local failure_count=0
+
     # Backup in sorted order
     for repo_name in "${sorted_repos[@]}"; do
-        # Find index for this repository
         for i in $(seq 0 $((repo_count - 1))); do
             local name
             name="$(config_get_repository "$i" "name")"
             if [[ "$name" == "$repo_name" ]]; then
                 _backup_repository "$i" || {
-                    log_error "Failed to backup repository: $repo_name" "backup"
-                    return 1
+                    log_warn "Non-critical failure backing up repository: $repo_name" "backup"
+                    error_add_partial "backup" "Repository backup failed: $repo_name" "Check repository path and permissions"
+                    failure_count=$((failure_count + 1))
                 }
                 break
             fi
         done
     done
+
+    # Report partial failures summary (FR-049)
+    if [[ $failure_count -gt 0 ]]; then
+        log_warn "Backup completed with $failure_count partial failure(s)" "backup"
+        if $JSON_OUTPUT; then
+            error_partial_summary
+        fi
+    fi
+
+    return 0
 }
 
 # Backup single repository
@@ -359,17 +442,27 @@ _backup_repository() {
 
     log_info "Backing up repository: $name" "backup" '{"repository":"'$name'","path":"'$path'"}'
 
-    # Verify repository exists
+    # Verify repository exists (exit code 3: kopia repository error)
     if [[ ! -d "$path" ]]; then
         log_error "Repository path does not exist: $path" "backup" '{"repository":"'$name'"}'
-        return 1
+        return 3
     fi
 
-    # Backup repository data
+    # Backup repository data (exit code 3: kopia repository error)
     kopia_snapshot "$path" "$name" || {
         log_error "Failed to backup repository: $name" "backup" '{"repository":"'$name'"}'
-        return 1
+        return 3
     }
+
+    # Copy k8s manifests to backup directory for restore alignment (FR-016)
+    local manifests_dir="$path/k8s"
+    if [[ -d "$manifests_dir" ]]; then
+        local backup_manifests="$SCRIPT_DIR/backup/repos/$name/k8s"
+        mkdir -p "$backup_manifests"
+        cp -r "$manifests_dir"/* "$backup_manifests/" 2>/dev/null || {
+            log_warn "Failed to copy manifests for repository: $name" "backup" '{"repository":"'$name'"}'
+        }
+    fi
 
     # Run database hook if configured
     local db_hook
@@ -387,7 +480,7 @@ _backup_repository() {
 
             if [[ "$mandatory" == "true" ]]; then
                 log_error "Database hook failed (mandatory)" "backup" '{"repository":"'$name'","hook":"'$db_hook'"}'
-                return 1
+                return 5
             else
                 log_warn "Database hook failed (optional)" "backup" '{"repository":"'$name'","hook":"'$db_hook'"}'
             fi
@@ -418,7 +511,7 @@ _verify_backup() {
 
     kopia_verify || {
         log_error "Backup verification failed" "backup"
-        return 1
+        return 3
     }
 
     log_info "Backup verification passed" "backup"

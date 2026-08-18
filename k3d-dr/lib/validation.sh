@@ -237,6 +237,9 @@ validate_all() {
         return 1
     fi
 
+    # Validate no secrets in configuration (FR-047)
+    validate_no_secrets "$config_file"
+
     # Source config library if not already loaded
     if ! command -v config_get &>/dev/null; then
         source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
@@ -292,6 +295,9 @@ validate_all() {
     local dns_suffix
     dns_suffix="$(config_get "dns_suffix")"
     validate_dns_suffix "$dns_suffix"
+
+    # Validate cross-field consistency (FR-028)
+    validate_cross_field "$config_file"
 
     # Report results
     if ! validation_passed; then
@@ -365,17 +371,47 @@ validate_no_secrets() {
     local found_secrets=0
 
     for pattern in "${secret_patterns[@]}"; do
-        if grep -qi "$pattern" "$config_file" 2>/dev/null; then
-            # Check if it's in a value (not a key or comment)
-            if grep -qi "^[^#]*$pattern.*:" "$config_file" 2>/dev/null; then
-                validation_add_warning "Configuration file contains potential secret reference: $pattern"
-                found_secrets=$((found_secrets + 1))
-            fi
+        # Match lines where VALUE (after colon) contains secret patterns
+        # Only flag actual inline secrets, not:
+        # - Env var names (UPPER_CASE, may be quoted)
+        # - Paths (start with /)
+        # - Var refs (start with ${)
+        # - Comments (start with #)
+        if grep -qE "^[^#]*:[[:space:]].*${pattern}" "$config_file" 2>/dev/null; then
+            # Extract value portion and check if it looks like an actual secret
+            # (contains lowercase letters, not just uppercase env var name)
+            local line
+            while IFS= read -r line; do
+                # Skip comments and empty lines
+                [[ "$line" =~ ^[[:space:]]*# ]] && continue
+                [[ -z "$line" ]] && continue
+                
+                # Extract value after colon
+                local value="${line#*:}"
+                value="${value# }"  # Remove leading space
+                
+                # Skip env var names (ALL_CAPS with underscores, possibly quoted)
+                [[ "$value" =~ ^[\"\']?[A-Z_0-9]+[\"\']?$ ]] && continue
+                
+                # Skip paths
+                [[ "$value" =~ ^[\"\']?/ ]] && continue
+                
+                # Skip var refs
+                [[ "$value" =~ ^[\"\']?\\$\\{ ]] && continue
+                
+                # Check if value contains the secret pattern
+                if echo "$value" | grep -qi "$pattern" 2>/dev/null; then
+                    validation_add_error "Configuration file contains potential secret reference: $pattern"
+                    found_secrets=$((found_secrets + 1))
+                    break  # Only report once per pattern
+                fi
+            done < "$config_file"
         fi
     done
 
     if [[ $found_secrets -gt 0 ]]; then
-        log_warn "Configuration file contains potential secret references. Consider using environment variables or external secrets." "validation"
+        log_error "Configuration file contains potential secret references. Use environment variables or external secrets." "validation"
+        return 1
     fi
 
     return 0
@@ -439,6 +475,49 @@ validate_secret_generation() {
     return 0
 }
 
+# Validate cross-field consistency between config and manifests (FR-028)
+# Usage: validate_cross_field <config_file>
+validate_cross_field() {
+    local config_file="$1"
+
+    if [[ ! -f "$config_file" ]]; then
+        return 0
+    fi
+
+    # Config should already be loaded by caller (no re-sourcing needed)
+
+    local repo_count
+    repo_count="$(config_get "repositories.count")"
+
+    for i in $(seq 0 $((repo_count - 1))); do
+        local name pvc namespace data_dir
+        name="$(config_get_repository "$i" "name")"
+        pvc="$(config_get_repository "$i" "pvc")"
+        namespace="$(config_get_repository "$i" "namespace")"
+        data_dir="$(config_get_repository "$i" "data_dir")"
+
+        # Validate PVC name matches namespace convention
+        if [[ -n "$pvc" && -n "$namespace" ]]; then
+            # Check if PVC exists in the specified namespace
+            if kubectl get pvc "$pvc" -n "$namespace" &>/dev/null; then
+                # Verify PVC is in correct namespace
+                local actual_namespace
+                actual_namespace="$(kubectl get pvc "$pvc" -n "$namespace" -o jsonpath='{.metadata.namespace}' 2>/dev/null)"
+                if [[ "$actual_namespace" != "$namespace" ]]; then
+                    validation_add_error "PVC $pvc is in namespace $actual_namespace but config specifies $namespace (repo: $name)"
+                fi
+            fi
+        fi
+
+        # Validate data_dir is an absolute path
+        if [[ -n "$data_dir" && "$data_dir" != /* ]]; then
+            validation_add_warning "data_dir should be an absolute path: $data_dir (repo: $name)"
+        fi
+    done
+
+    return 0
+}
+
 # Export functions
-export -f validation_init validation_add_error validation_add_warning validation_passed validation_get_errors validation_get_warnings validate_repository_path validate_data_dir_separation validate_pvc_exists validate_namespace_exists validate_hook_script validate_kopia_repository validate_vault_unseal_key validate_port_offset validate_dns_suffix validate_all validate_hook_checksum validate_no_secrets validate_kubernetes_connectivity validate_eso_connectivity validate_secret_generation
+export -f validation_init validation_add_error validation_add_warning validation_passed validation_get_errors validation_get_warnings validate_repository_path validate_data_dir_separation validate_pvc_exists validate_namespace_exists validate_hook_script validate_kopia_repository validate_vault_unseal_key validate_port_offset validate_dns_suffix validate_all validate_hook_checksum validate_no_secrets validate_kubernetes_connectivity validate_eso_connectivity validate_secret_generation validate_cross_field
 export VALIDATION_ERRORS VALIDATION_WARNINGS

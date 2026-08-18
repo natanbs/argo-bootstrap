@@ -13,6 +13,9 @@ LOG_LEVEL_ERROR="error"
 # Default log level (can be overridden via environment variable)
 LOG_LEVEL="${LOG_LEVEL:-$LOG_LEVEL_INFO}"
 
+# Log format: "json" for structured JSON output, "text" for plain text (FR-046)
+LOG_FORMAT="${LOG_FORMAT:-text}"
+
 # Log file path (can be overridden via environment variable)
 LOG_FILE="${LOG_FILE:-}"
 
@@ -59,6 +62,43 @@ _json_escape() {
     echo -n "$str"
 }
 
+# Format log entry for output (FR-007)
+# Usage: _format_log_entry <format> <timestamp> <level> <message> [component] [metadata]
+_format_log_entry() {
+    local format="$1"
+    local timestamp="$2"
+    local level="$3"
+    local message="$4"
+    local component="${5:-}"
+    local metadata="${6:-}"
+
+    if [[ "$format" == "json" ]]; then
+        local json="{"
+        json+="\"timestamp\":\"${timestamp}\","
+        json+="\"level\":\"${level}\","
+        json+="\"message\":\"$(_json_escape "$message")\""
+
+        if [[ -n "$component" ]]; then
+            json+=",\"component\":\"$(_json_escape "$component")\""
+        fi
+
+        if [[ -n "$metadata" ]]; then
+            json+=",\"metadata\":${metadata}"
+        fi
+
+        json+="}"
+        echo "$json"
+    else
+        local entry=""
+        if [[ -n "$component" ]]; then
+            entry="[$timestamp] $level [$component] $message"
+        else
+            entry="[$timestamp] $level $message"
+        fi
+        echo "$entry"
+    fi
+}
+
 # Core logging function
 _log() {
     local level="$1"
@@ -73,34 +113,35 @@ _log() {
     local timestamp
     timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-    # Build JSON log entry
-    local json="{"
-    json+="\"timestamp\":\"${timestamp}\","
-    json+="\"level\":\"${level}\","
-    json+="\"message\":\"$(_json_escape "$message")\""
+    # Uppercase level for contract compliance
+    local upper_level
+    upper_level="$(echo "$level" | tr '[:lower:]' '[:upper:]')"
 
-    if [[ -n "$component" ]]; then
-        json+=",\"component\":\"$(_json_escape "$component")\""
-    fi
+    # Format entry using helper (FR-007)
+    local entry
+    entry="$(_format_log_entry "$LOG_FORMAT" "$timestamp" "$upper_level" "$message" "$component" "$metadata")"
 
-    if [[ -n "$metadata" ]]; then
-        json+=",\"metadata\":${metadata}"
-    fi
-
-    json+="}"
-
-    # Output to stdout with color (if terminal supports it)
-    if [[ -t 1 ]]; then
-        local color
-        color="$(_get_color "$level")"
-        echo -e "${color}${json}${COLOR_RESET}"
+    if [[ "$LOG_FORMAT" == "json" ]]; then
+        echo "$entry"
     else
-        echo "$json"
+        # Plain text output with optional color
+        local color=""
+        if [[ -t 1 ]]; then
+            color="$(_get_color "$level")"
+        fi
+
+        if [[ -n "$color" ]]; then
+            echo -e "${color}${entry}${COLOR_RESET}"
+        else
+            echo "$entry"
+        fi
     fi
 
     # Append to log file if configured
     if [[ -n "$LOG_FILE" ]]; then
-        echo "$json" >> "$LOG_FILE"
+        local file_entry
+        file_entry="$(_format_log_entry "$LOG_FORMAT" "$timestamp" "$upper_level" "$message" "$component" "$metadata")"
+        echo "$file_entry" >> "$LOG_FILE"
     fi
 }
 
@@ -160,6 +201,7 @@ set_log_file() {
 # Initialize logging from environment
 init_logging() {
     LOG_LEVEL="${LOG_LEVEL:-$LOG_LEVEL_INFO}"
+    LOG_FORMAT="${LOG_FORMAT:-text}"
     LOG_FILE="${LOG_FILE:-}"
 
     if [[ -n "$LOG_FILE" ]]; then
@@ -169,4 +211,4 @@ init_logging() {
 
 # Export functions
 export -f log_debug log_info log_warn log_error log_with_metadata set_log_level set_log_file init_logging
-export LOG_LEVEL LOG_FILE
+export LOG_LEVEL LOG_FORMAT LOG_FILE

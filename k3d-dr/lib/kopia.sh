@@ -32,17 +32,27 @@ kopia_init() {
     export KOPIA_PASSWORD
 }
 
-# Create or connect to Kopia repository
-# Usage: kopia_connect
+# Create or connect to Kopia repository (FR-032: Argon2id KDF)
+# Usage: kopia_connect [--kdf-argon2id]
 kopia_connect() {
+    local use_argon2id=false
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            --kdf-argon2id) use_argon2id=true ;;
+        esac
+    done
+
+    local kdf_args=()
+    if $use_argon2id; then
+        kdf_args+=(--kdf-argon2id)
+    fi
+
     if [[ ! -d "$KOPIA_REPO_PATH" ]]; then
-        # Create new repository
-        kopia repository create filesystem --path "$KOPIA_REPO_PATH" --password "$KOPIA_PASSWORD"
+        kopia repository create filesystem --path "$KOPIA_REPO_PATH" --password "$KOPIA_PASSWORD" "${kdf_args[@]}"
     else
-        # Connect to existing repository
         kopia repository connect filesystem --path "$KOPIA_REPO_PATH" --password "$KOPIA_PASSWORD" 2>/dev/null || {
-            # If connection fails, try creating
-            kopia repository create filesystem --path "$KOPIA_REPO_PATH" --password "$KOPIA_PASSWORD"
+            kopia repository create filesystem --path "$KOPIA_REPO_PATH" --password "$KOPIA_PASSWORD" "${kdf_args[@]}"
         }
     fi
 }
@@ -129,13 +139,18 @@ kopia_verify() {
 }
 
 # Apply retention policy
-# Usage: kopia_retention <daily> <weekly> <monthly>
+# Usage: kopia_retention <daily> <weekly> <monthly> [latest]
 kopia_retention() {
     local daily="$1"
     local weekly="$2"
     local monthly="$3"
+    local latest="${4:-}"
 
-    kopia policy set --keep-latest "$daily" --keep-daily "$daily" --keep-weekly "$weekly" --keep-monthly "$monthly"
+    if [[ -n "$latest" ]]; then
+        kopia policy set --keep-daily "$daily" --keep-weekly "$weekly" --keep-monthly "$monthly" --keep-latest "$latest"
+    else
+        kopia policy set --keep-daily "$daily" --keep-weekly "$weekly" --keep-monthly "$monthly"
+    fi
 }
 
 # Delete old snapshots based on retention
