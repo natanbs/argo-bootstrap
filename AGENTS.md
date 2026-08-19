@@ -1,4 +1,4 @@
-# Agent Context: Fix Code Review Bugs
+# Agent Context: ArgoCD Install Infra Apps
 
 <!-- SPECKIT START -->
 ## Team Directives & Constitution
@@ -15,5 +15,5 @@ This project is bound by the team-ai-directives knowledge base.
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/007-fix-code-review-bugs/plan.md
+at specs/008-argocd-install-infra/plan.md
 <!-- SPECKIT END -->
