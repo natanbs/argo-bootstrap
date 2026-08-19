@@ -59,8 +59,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [ASYNC] [US2] Verify ApplicationSet git file generator correctly resolves apps/*.yaml from the infra repo after bootstrap (FR-004)
-- [ ] T010 [ASYNC] [US2] Document app registration format (name, repoURL, appPath, namespace) in argocd.sh header comments or a README section
+- [x] T009 [ASYNC] [US2] Verify ApplicationSet git file generator correctly resolves apps/*.yaml from the infra repo after bootstrap (FR-004)
+- [x] T010 [ASYNC] [US2] Document app registration format (name, repoURL, appPath, namespace) in argocd.sh header comments or a README section
 - [ ] T015 [ASYNC] [US2] Validate SC-002: add a test apps/ YAML to infra repo, confirm ArgoCD creates Application within sync interval without argocd.sh changes
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work — new apps deploy automatically
@@ -86,7 +86,7 @@
 **Purpose**: Improvements that affect multiple user stories
 
 - [ ] T012 [ASYNC] Run quickstart.md validation scenarios against a fresh cluster
-- [ ] T013 [ASYNC] Verify GitHub token is never written to git-tracked files (SC-004, FR-009)
+- [x] T013 [ASYNC] Verify GitHub token is never written to git-tracked files (SC-004, FR-009)
 - [ ] T014 [ASYNC] Verify all 5 registered apps are accessible via services after bootstrap (SC-005)
 
 ---
