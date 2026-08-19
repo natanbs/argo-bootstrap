@@ -16,8 +16,8 @@
 
 **Purpose**: Review existing script structure and plan insertion points
 
-- [ ] T001 [ASYNC] Review current argocd.sh structure and identify insertion points for GitHub credential and ApplicationSet deployment in argocd.sh
-- [ ] T002 [ASYNC] Review infra/argocd-infra/applicationset.yaml manifest structure and apps/*.yaml registration format
+- [x] T001 [ASYNC] Review current argocd.sh structure and identify insertion points for GitHub credential and ApplicationSet deployment in argocd.sh
+- [x] T002 [ASYNC] Review infra/argocd-infra/applicationset.yaml manifest structure and apps/*.yaml registration format
 
 ---
 
@@ -27,8 +27,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 [SYNC] Add GITHUB_TOKEN env var input with interactive prompt fallback to argocd.sh (FR-007, FR-009)
-- [ ] T004 [ASYNC] Add ARGOCD_INFRA_BRANCH env var with default value 'main' to argocd.sh (FR-008)
+- [x] T003 [SYNC] Add GITHUB_TOKEN env var input with interactive prompt fallback to argocd.sh (FR-007, FR-009)
+- [x] T004 [ASYNC] Add ARGOCD_INFRA_BRANCH env var with default value 'main' to argocd.sh (FR-008)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -42,10 +42,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [SYNC] [US1] Add create_github_credential function to argocd.sh — creates kubernetes.io/basic-auth Secret with argocd.argoproj.io/secret-type: repository label using kubectl apply for idempotency (FR-001, FR-002, FR-006)
-- [ ] T006 [SYNC] [US1] Add deploy_applicationset function to argocd.sh — applies ApplicationSet manifest from infra/argocd-infra/ using kubectl apply for idempotency, with branch override via ARGOCD_INFRA_BRANCH (FR-003, FR-004, FR-006, FR-008)
-- [ ] T007 [ASYNC] [US1] Integrate create_github_credential and deploy_applicationset calls into argocd.sh main flow after ArgoCD password change, before go-server app deployment (FR-005)
-- [ ] T008 [ASYNC] [US1] Update --help text in argocd.sh to document GITHUB_TOKEN env var, interactive prompt, and ARGOCD_INFRA_BRANCH option (CHK030)
+- [x] T005 [SYNC] [US1] Add create_github_credential function to argocd.sh — creates kubernetes.io/basic-auth Secret with argocd.argoproj.io/secret-type: repository label using kubectl apply for idempotency (FR-001, FR-002, FR-006)
+- [x] T006 [SYNC] [US1] Add deploy_applicationset function to argocd.sh — applies ApplicationSet manifest from infra/argocd-infra/ using kubectl apply for idempotency, with branch override via ARGOCD_INFRA_BRANCH (FR-003, FR-004, FR-006, FR-008)
+- [x] T007 [ASYNC] [US1] Integrate create_github_credential and deploy_applicationset calls into argocd.sh main flow after ArgoCD password change, before go-server app deployment (FR-005)
+- [x] T008 [ASYNC] [US1] Update --help text in argocd.sh to document GITHUB_TOKEN env var, interactive prompt, and ARGOCD_INFRA_BRANCH option (CHK030)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — running argocd.sh deploys all infra apps via ArgoCD
 
