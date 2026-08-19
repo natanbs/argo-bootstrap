@@ -6,11 +6,11 @@
 
 ## Mission Brief Items
 
-- [ ] CHK001 - Goal is specific enough to verify completion [Clarity]
-- [ ] CHK002 - Every Success Criterion has a quantified metric [Measurability]
-- [ ] CHK003 - Constraints explicitly bound the solution space [Completeness]
-- [ ] CHK004 - Every user story maps to at least one Success Criterion [Coverage]
-- [ ] CHK005 - No vague adjectives ("fast", "secure") without quantified thresholds [Clarity]
+- [x] CHK001 - Goal is specific enough to verify completion [Clarity]
+- [x] CHK002 - Every Success Criterion has a quantified metric [Measurability]
+- [x] CHK003 - Constraints explicitly bound the solution space [Completeness]
+- [x] CHK004 - Every user story maps to at least one Success Criterion [Coverage]
+- [x] CHK005 - No vague adjectives ("fast", "secure") without quantified thresholds [Clarity]
 - [ ] CHK006 - Demo Sentence is filled with an observable outcome [Completeness]
 
 ## Mission Brief Adequacy: 5/6 (83%)
