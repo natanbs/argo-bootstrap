@@ -91,6 +91,12 @@
 
 ---
 
+## Phase 7: Convergence
+
+- [ ] T016 [ASYNC] Add app registration format documentation (name, repoURL, appPath, namespace) to argocd.sh header comments per T010 (partial)
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
