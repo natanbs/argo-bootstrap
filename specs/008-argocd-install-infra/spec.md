@@ -13,13 +13,13 @@
 **Goal**: Configure ArgoCD to automatically deploy infrastructure apps from the `~/projects/repos/infra` repository using GitHub token authentication.
 
 **Success Criteria**:
-- SC-001: Running `argocd.sh` on a fresh system results in all registered infra apps reaching `Synced` status within 5 minutes
-- SC-002: Adding a new app registration YAML to `infra/argocd-infra/apps/` results in ArgoCD deploying it within one sync interval (3 minutes) without any changes to `argocd.sh`
+- SC-001: Running `argocd.sh` on a fresh system results in all apps registered in `infra/argocd-infra/apps/*.yaml` reaching `Synced` status within 5 minutes
+- SC-002: Adding a new app registration YAML to `infra/argocd-infra/apps/` results in ArgoCD deploying it within one sync interval without any changes to `argocd.sh`
 - SC-003: Running `argocd.sh` twice consecutively produces no errors and all resources remain in the expected state (idempotent)
 
 **Constraints**:
 - GitHub personal access token provided via env var or interactive prompt, never in git-tracked files
-- Only infrastructure apps (vault, prometheus, external-secrets) in scope
+- All 5 registered apps (vault, prometheus, external-secrets, familytree, pdf-scan) deploy via ApplicationSet; scope covers credential and ApplicationSet deployment only
 - ArgoCD in insecure mode (HTTP)
 
 ## User Scenarios & Testing *(mandatory)*
@@ -30,13 +30,13 @@ As a platform operator, I want the `argocd.sh` bootstrap script to automatically
 
 **Why this priority**: This is the core deliverable — without it, every cluster recreation requires manual ArgoCD configuration and app deployment, defeating the purpose of the disaster recovery system.
 
-**Independent Test**: Can be fully tested by running `argocd.sh` on a fresh system and verifying all infra apps (vault, prometheus, external-secrets) reach `Synced` status in ArgoCD within 5 minutes.
+**Independent Test**: Can be fully tested by running `argocd.sh` on a fresh system and verifying all registered apps (vault, prometheus, external-secrets, familytree, pdf-scan) reach `Synced` status in ArgoCD within 5 minutes.
 
 **Acceptance Scenarios**:
 
 1. **Given** a fresh k3d cluster with ArgoCD installed, **When** `argocd.sh` completes execution, **Then** a Kubernetes Secret named `github-repo-cred` exists in the `argocd` namespace containing the GitHub token
 2. **Given** the GitHub repository credential exists, **When** ArgoCD processes the ApplicationSet, **Then** ArgoCD Applications are created for each `apps/*.yaml` file in the `infra/argocd-infra/` directory
-3. **Given** ArgoCD Applications are created, **When** sync completes, **Then** vault, prometheus, and external-secrets pods are running in their respective namespaces
+3. **Given** ArgoCD Applications are created, **When** sync completes, **Then** all 5 registered apps (vault, prometheus, external-secrets, familytree, pdf-scan) pods are running in their respective namespaces
 
 ---
 
@@ -116,7 +116,7 @@ As a platform operator, I want to run `argocd.sh` multiple times without errors 
 - The ApplicationSet in `infra/argocd-infra/applicationset.yaml` is the single source of truth for app registrations
 - The existing `apps/*.yaml` files already reference the correct GitHub repository URLs and paths
 - The k3d cluster has network access to GitHub (for cloning repos)
-- Only infrastructure apps (vault, prometheus, external-secrets) are in scope — business apps (familytree, pdf-scan) are excluded from this feature
+- The ApplicationSet deploys all 5 registered apps; no filtering is applied at bootstrap time
 - The ArgoCD server is configured in insecure mode (HTTP) as per the existing bootstrap, so TLS certificate verification for the repo is not required
 
 ## Clarifications
