@@ -12,6 +12,14 @@
 #
 # Reserved host ports: 80, 443 (ingress); 50000-50004 (registry fallback)
 # Note: Traefik terminates on the k3d loadbalancer; apps are path-routed via Ingress
+#
+# App Registration (in infra/argocd-infra/apps/*.yaml):
+#   name       - Application name (e.g., vault, prometheus)
+#   repoURL    - GitHub repo URL for the app
+#   appPath    - Path within the repo (usually ".")
+#   namespace  - Target Kubernetes namespace
+# Adding a new app: create a YAML with these fields in the infra repo's apps/ directory.
+# The ApplicationSet (cluster-apps) auto-discovers and deploys it on next sync.
 
 # Usage
 if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
