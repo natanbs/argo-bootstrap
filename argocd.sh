@@ -319,6 +319,16 @@ else
   echo "Please run it manually to create the vault-tls secret in apps-ns"
 fi
 
+# Create placeholder vault-unseal-keys secret so vault pods can start
+# Real keys are created by 'vault operator init' after pods are running
+echo "Creating vault-unseal-keys placeholder secret..."
+kubectl create namespace vault --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n vault create secret generic vault-unseal-keys \
+  --from-literal=key1=PLACEHOLDER_UNSEAL_KEY_1 \
+  --from-literal=key2=PLACEHOLDER_UNSEAL_KEY_2 \
+  --from-literal=key3=PLACEHOLDER_UNSEAL_KEY_3 \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 # Deploy ApplicationSet (remaining apps)
 deploy_applicationset
 
