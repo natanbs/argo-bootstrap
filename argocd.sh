@@ -319,15 +319,29 @@ else
   echo "Please run it manually to create the vault-tls secret in apps-ns"
 fi
 
-# Create placeholder vault-unseal-keys secret so vault pods can start
-# Real keys are created by 'vault operator init' after pods are running
-echo "Creating vault-unseal-keys placeholder secret..."
+# Create vault-unseal-keys secret from init.json so vault pods can start and auto-unseal
+echo "Creating vault-unseal-keys secret..."
+VAULT_REPO="../infra/vault"
 kubectl create namespace vault --dry-run=client -o yaml | kubectl apply -f -
-kubectl -n vault create secret generic vault-unseal-keys \
-  --from-literal=key1=PLACEHOLDER_UNSEAL_KEY_1 \
-  --from-literal=key2=PLACEHOLDER_UNSEAL_KEY_2 \
-  --from-literal=key3=PLACEHOLDER_UNSEAL_KEY_3 \
-  --dry-run=client -o yaml | kubectl apply -f -
+if [[ -f "$VAULT_REPO/init.json" ]]; then
+  KEY1=$(python3 -c "import json; print(json.load(open('$VAULT_REPO/init.json'))['unseal_keys_b64'][0])")
+  KEY2=$(python3 -c "import json; print(json.load(open('$VAULT_REPO/init.json'))['unseal_keys_b64'][1])")
+  KEY3=$(python3 -c "import json; print(json.load(open('$VAULT_REPO/init.json'))['unseal_keys_b64'][2])")
+  kubectl -n vault create secret generic vault-unseal-keys \
+    --from-literal=key1="$KEY1" \
+    --from-literal=key2="$KEY2" \
+    --from-literal=key3="$KEY3" \
+    --dry-run=client -o yaml | kubectl apply -f -
+  echo "vault-unseal-keys created from init.json."
+else
+  echo "ERROR: init.json not found at $VAULT_REPO/init.json"
+  echo "Creating placeholder secret — vault will need manual init+unseal"
+  kubectl -n vault create secret generic vault-unseal-keys \
+    --from-literal=key1=PLACEHOLDER \
+    --from-literal=key2=PLACEHOLDER \
+    --from-literal=key3=PLACEHOLDER \
+    --dry-run=client -o yaml | kubectl apply -f -
+fi
 
 # Deploy ApplicationSet (remaining apps)
 deploy_applicationset
