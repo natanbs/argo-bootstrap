@@ -308,6 +308,16 @@ until kubectl get clustersecretstore kubernetes-store -o jsonpath='{.status.cond
 done
 echo "ClusterSecretStore is ready."
 
+# Create vault-tls source secret in apps-ns (vault's ExternalSecret depends on it)
+echo "Creating vault-tls source secret..."
+VAULT_REPO="../infra/vault"
+if [[ -f "$VAULT_REPO/scripts/vault-tls.sh" ]]; then
+  bash "$VAULT_REPO/scripts/vault-tls.sh"
+else
+  echo "ERROR: vault-tls.sh not found at $VAULT_REPO/scripts/vault-tls.sh"
+  echo "Please run it manually to create the vault-tls secret in apps-ns"
+fi
+
 # Deploy ApplicationSet (remaining apps)
 deploy_applicationset
 
