@@ -287,6 +287,7 @@ echo "External Secrets Operator installed."
 
 # Deploy external-secrets app first (other apps depend on its ClusterSecretStore)
 echo "Deploying external-secrets app..."
+kubectl create namespace apps-ns --dry-run=client -o yaml | kubectl apply -f -
 argocd app create external-secrets \
   --repo https://github.com/natanbs/external-secrets.git \
   --path . \
@@ -298,7 +299,7 @@ argocd app create external-secrets \
   --sync-option CreateNamespace=true \
   --sync-option ServerSideApply=true \
   --upsert
-argocd app wait external-secrets --timeout 120
+argocd app wait external-secrets --timeout 120 --health
 echo "external-secrets app synced and healthy."
 
 # Wait for ClusterSecretStore to be ready (vault's ExternalSecret depends on it)
