@@ -333,11 +333,20 @@ kubectl -n vault create secret generic vault-unseal-keys \
 deploy_applicationset
 
 # Initialize and unseal vault on fresh cluster
-echo "Waiting for vault-0 pod to start..."
-kubectl wait --for=jsonpath='{.status.phase}'=Running pod/vault-0 -n vault --timeout=300s
+echo "Waiting for vault-0 pod to appear and be running..."
+until kubectl get pod vault-0 -n vault -o jsonpath='{.status.phase}' 2>/dev/null | grep -q "Running"; do
+  sleep 5
+done
+echo "vault-0 is running."
 
 echo "Initializing vault..."
 INIT_JSON=$(kubectl exec -n vault vault-0 -- vault operator init -key-shares=5 -key-threshold=3 -format=json)
+if [[ -z "$INIT_JSON" ]] || ! echo "$INIT_JSON" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+  echo "ERROR: vault operator init failed or returned invalid JSON"
+  echo "Output: $INIT_JSON"
+  kill $PF_PID 2>/dev/null
+  exit 1
+fi
 echo "$INIT_JSON" > "$VAULT_REPO/init.json"
 echo "Vault initialized. Keys saved to $VAULT_REPO/init.json"
 
