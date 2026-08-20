@@ -319,32 +319,48 @@ else
   echo "Please run it manually to create the vault-tls secret in apps-ns"
 fi
 
-# Create vault-unseal-keys secret from init.json so vault pods can start and auto-unseal
+# Create vault-unseal-keys secret so vault pods can start
 echo "Creating vault-unseal-keys secret..."
 VAULT_REPO="../infra/vault"
 kubectl create namespace vault --dry-run=client -o yaml | kubectl apply -f -
-if [[ -f "$VAULT_REPO/init.json" ]]; then
-  KEY1=$(python3 -c "import json; print(json.load(open('$VAULT_REPO/init.json'))['unseal_keys_b64'][0])")
-  KEY2=$(python3 -c "import json; print(json.load(open('$VAULT_REPO/init.json'))['unseal_keys_b64'][1])")
-  KEY3=$(python3 -c "import json; print(json.load(open('$VAULT_REPO/init.json'))['unseal_keys_b64'][2])")
-  kubectl -n vault create secret generic vault-unseal-keys \
-    --from-literal=key1="$KEY1" \
-    --from-literal=key2="$KEY2" \
-    --from-literal=key3="$KEY3" \
-    --dry-run=client -o yaml | kubectl apply -f -
-  echo "vault-unseal-keys created from init.json."
-else
-  echo "ERROR: init.json not found at $VAULT_REPO/init.json"
-  echo "Creating placeholder secret — vault will need manual init+unseal"
-  kubectl -n vault create secret generic vault-unseal-keys \
-    --from-literal=key1=PLACEHOLDER \
-    --from-literal=key2=PLACEHOLDER \
-    --from-literal=key3=PLACEHOLDER \
-    --dry-run=client -o yaml | kubectl apply -f -
-fi
+kubectl -n vault create secret generic vault-unseal-keys \
+  --from-literal=key1=PLACEHOLDER \
+  --from-literal=key2=PLACEHOLDER \
+  --from-literal=key3=PLACEHOLDER \
+  --dry-run=client -o yaml | kubectl apply -f -
 
 # Deploy ApplicationSet (remaining apps)
 deploy_applicationset
+
+# Initialize and unseal vault on fresh cluster
+echo "Waiting for vault-0 pod to start..."
+kubectl wait --for=jsonpath='{.status.phase}'=Running pod/vault-0 -n vault --timeout=300s
+
+echo "Initializing vault..."
+INIT_JSON=$(kubectl exec -n vault vault-0 -- vault operator init -key-shares=5 -key-threshold=3 -format=json)
+echo "$INIT_JSON" > "$VAULT_REPO/init.json"
+echo "Vault initialized. Keys saved to $VAULT_REPO/init.json"
+
+# Extract unseal keys
+KEY1=$(echo "$INIT_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['unseal_keys_b64'][0])")
+KEY2=$(echo "$INIT_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['unseal_keys_b64'][1])")
+KEY3=$(echo "$INIT_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['unseal_keys_b64'][2])")
+
+# Update the secret with real keys
+kubectl -n vault delete secret vault-unseal-keys
+kubectl -n vault create secret generic vault-unseal-keys \
+  --from-literal=key1="$KEY1" \
+  --from-literal=key2="$KEY2" \
+  --from-literal=key3="$KEY3"
+
+# Unseal all vault replicas
+for i in 0 1 2; do
+  echo "Unsealing vault-${i}..."
+  kubectl exec -n vault "vault-${i}" -- vault operator unseal "$KEY1" 2>/dev/null || true
+  kubectl exec -n vault "vault-${i}" -- vault operator unseal "$KEY2" 2>/dev/null || true
+  kubectl exec -n vault "vault-${i}" -- vault operator unseal "$KEY3" 2>/dev/null || true
+done
+echo "Vault initialized and unsealed."
 
 # Cleanup port-forward
 kill $PF_PID 2>/dev/null
