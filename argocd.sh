@@ -285,7 +285,23 @@ helm upgrade --install external-secrets external-secrets/external-secrets \
   --wait --timeout 120s
 echo "External Secrets Operator installed."
 
-# Deploy ApplicationSet
+# Deploy external-secrets app first (other apps depend on its ClusterSecretStore)
+echo "Deploying external-secrets app..."
+argocd app create external-secrets \
+  --repo https://github.com/natanbs/external-secrets.git \
+  --path . \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace external-secrets \
+  --sync-policy automated \
+  --auto-prune \
+  --self-heal \
+  --sync-option CreateNamespace=true \
+  --sync-option ServerSideApply=true \
+  --upsert
+argocd app wait external-secrets --timeout 120
+echo "external-secrets app synced and healthy."
+
+# Deploy ApplicationSet (remaining apps)
 deploy_applicationset
 
 # Cleanup port-forward
