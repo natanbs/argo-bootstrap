@@ -238,7 +238,8 @@ echo $init_pass
 echo
 sleep 30
 
-admin_pass=ChangeMe
+# ArgoCD requires: 8+ chars, uppercase, lowercase, digit, special char
+admin_pass="ChangeMe#2026"
 
 # Change admin password via ArgoCD CLI
 echo "Changing ArgoCD admin password..."
