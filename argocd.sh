@@ -130,7 +130,7 @@ deploy_applicationset() {
   tmpdir=$(mktemp -d)
   local manifest="${tmpdir}/applicationset.yaml"
   
-  curl -sL "https://raw.githubusercontent.com/natanbs/argocd-infra/${ARGOCD_INFRA_BRANCH}/applicationset.yaml" -o "$manifest"
+  curl -sL -u "${GITHUB_USER}:${token}" "https://raw.githubusercontent.com/natanbs/argocd-infra/${ARGOCD_INFRA_BRANCH}/applicationset.yaml" -o "$manifest"
   
   if [ ! -s "$manifest" ]; then
     echo "ERROR: Failed to fetch ApplicationSet manifest from branch ${ARGOCD_INFRA_BRANCH}"
@@ -256,7 +256,7 @@ echo "Port-forward ready."
 
 if argocd login localhost:8081 --username admin --password "$init_pass" --plaintext; then
   echo "Login successful."
-  argocd account update-password --current-password "$init_pass" --new-password "$admin_pass" --yes && echo "Password changed to: $admin_pass" || echo "ERROR: Password change failed"
+  yes | argocd account update-password --current-password "$init_pass" --new-password "$admin_pass" && echo "Password changed to: $admin_pass" || echo "ERROR: Password change failed"
 else
   echo "ERROR: ArgoCD login failed — password not changed"
 fi
