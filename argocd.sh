@@ -116,10 +116,13 @@ metadata:
     argocd.argoproj.io/secret-type: repository
 type: Opaque
 stringData:
-  url: https://github.com/natanbs
+  url: https://github.com/natanbs/
   username: "${GITHUB_USER}"
   password: "${token}"
 EOF
+  echo "Restarting repo-server to pick up new credential..."
+  kubectl rollout restart deployment/argocd-repo-server -n argocd
+  kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=120s
   echo "GitHub credential created."
 }
 
