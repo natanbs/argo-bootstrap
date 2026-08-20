@@ -121,6 +121,9 @@ stringData:
   password: "${token}"
 EOF
   echo "GitHub credential Secret created."
+  echo "Restarting repo-server to load credential..."
+  kubectl rollout restart deployment/argocd-repo-server -n argocd
+  kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=120s
 }
 
 # Wait for repo-server to load the credential by polling the ArgoCD API
