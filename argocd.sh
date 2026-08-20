@@ -249,12 +249,17 @@ PF_PID=$!
 sleep 5
 
 # Wait for port-forward to be ready
-until curl -s http://localhost:8081 > /dev/null 2>&1; do
+until curl -sf http://localhost:8081/healthz > /dev/null 2>&1; do
   sleep 2
 done
+echo "Port-forward ready."
 
-argocd login localhost:8081 --username admin --password "$init_pass" --plaintext
-argocd account update-password --current-password "$init_pass" --new-password "$admin_pass" --yes
+if argocd login localhost:8081 --username admin --password "$init_pass" --plaintext; then
+  echo "Login successful."
+  argocd account update-password --current-password "$init_pass" --new-password "$admin_pass" --yes && echo "Password changed to: $admin_pass" || echo "ERROR: Password change failed"
+else
+  echo "ERROR: ArgoCD login failed — password not changed"
+fi
 sleep 2
 
 kill $PF_PID 2>/dev/null
