@@ -103,6 +103,44 @@ install_tool() {
 
 install_tool k3d
 
+# Create GitHub repository credential for ArgoCD (declarative, no argocd CLI)
+create_github_credential() {
+  echo "Creating GitHub repository credential for ArgoCD..."
+  kubectl apply -n argocd -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-repo-cred
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  url: https://github.com/natanbs/
+  username: "${GITHUB_USER}"
+  password: "${token}"
+EOF
+  echo "GitHub credential Secret created."
+}
+
+# Wait for repo-server to load the credential by polling the ArgoCD API
+wait_for_repo_ready() {
+  echo "Waiting for repo-server to load credential..."
+  local max_attempts=30
+  local attempt=0
+  while [ $attempt -lt $max_attempts ]; do
+    if curl -sf -u "admin:${admin_pass}" http://localhost:8081/api/v1/repositories 2>/dev/null | grep -q "argocd-infra"; then
+      echo "Repository registered in ArgoCD."
+      return 0
+    fi
+    attempt=$((attempt + 1))
+    echo "  Attempt $attempt/$max_attempts — waiting 5s..."
+    sleep 5
+  done
+  echo "ERROR: Repository not loaded after $((max_attempts * 5))s"
+  return 1
+}
+
 
 
 # Deploy ApplicationSet from infra repo
@@ -254,15 +292,11 @@ else
   echo "ERROR: Could not verify new password"
 fi
 
-# Register GitHub repo with ArgoCD
-echo "Registering GitHub repository with ArgoCD..."
-if argocd repo add https://github.com/natanbs/argocd-infra.git --username "$GITHUB_USER" --password "$token" --upsert; then
-  echo "GitHub repository registered."
-else
-  echo "ERROR: Failed to register GitHub repository"
-fi
+# Register GitHub repo with ArgoCD (declarative Secret + API poll)
+create_github_credential
+wait_for_repo_ready || exit 1
 
-# Deploy ApplicationSet (repo is now registered, credential is available)
+# Deploy ApplicationSet (repo is now registered, credential is loaded)
 deploy_applicationset
 
 # Cleanup port-forward
