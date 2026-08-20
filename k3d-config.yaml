@@ -11,6 +11,12 @@ ports:
   - port: 443:443
     nodeFilters:
       - loadbalancer
+  - port: 8081:8081
+    nodeFilters:
+      - loadbalancer
+  - port: 8443:8443
+    nodeFilters:
+      - loadbalancer
 registries:
   use:
     - k3d-reg:5000

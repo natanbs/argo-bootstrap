@@ -6,23 +6,54 @@
 # ----------------|--------|---------|---------|-----------|-----|-----------
 # Traefik ingress | 80     | 80      | n/a     | n/a       | no  | k3d-config.yaml
 # HTTPS ingress   | 443    | 443     | n/a     | n/a       | yes | k3d-config.yaml
-# ArgoCD          | 80     | 80      | 8443    | 443       | no  | argo-ingress.yaml (host argocd.lab)
-# Apps            | 80     | 80      | <app>   | <app>     | no  | <repo>/k8s/ingress.yaml (host <app>.lab)
+# ArgoCD HTTP     | 8081   | 8081    | 8081    | 8080      | no  | k3d-config.yaml
+# ArgoCD HTTPS    | 8443   | 8443    | 8443    | 8443      | yes | k3d-config.yaml
 # Registry        | 50000  | 5000    | n/a     | n/a       | no  | argocd.sh (k3d registry create)
 #
 # Reserved host ports: 80, 443 (ingress); 50000-50004 (registry fallback)
 # Note: Traefik terminates on the k3d loadbalancer; apps are path-routed via Ingress
+#
+# App Registration (in infra/argocd-infra/apps/*.yaml):
+#   name       - Application name (e.g., vault, prometheus)
+#   repoURL    - GitHub repo URL for the app
+#   appPath    - Path within the repo (usually ".")
+#   namespace  - Target Kubernetes namespace
+# Adding a new app: create a YAML with these fields in the infra repo's apps/ directory.
+# The ApplicationSet (cluster-apps) auto-discovers and deploys it on next sync.
 
 # Usage
 if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
   echo
   echo "Usage:"  
-  echo "$0 <git-token>     # If app in private repo"
+  echo "$0 [git-token]     # If app in private repo (or set GITHUB_TOKEN)"
   echo
+  echo "Environment variables:"
+  echo "  GITHUB_TOKEN           GitHub personal access token for repo access"
+  echo "  ARGOCD_INFRA_BRANCH    Branch for ApplicationSet (default: main)"
+  echo "  ARGOCD_SESSION_EXPIRES Session duration (default: 720h = 30 days)"
+  echo
+  echo "If GITHUB_TOKEN is not set, you will be prompted for credentials."
   exit 1
-else
-  token="${1:-$GITHUB_TOKEN}"
 fi
+
+# GitHub token input: $1 arg > GITHUB_TOKEN env var > interactive prompt
+token="${1:-$GITHUB_TOKEN}"
+if [ -z "$token" ]; then
+  echo "GitHub token not found."
+  read -p "GitHub username: " GITHUB_USER
+  read -s -p "GitHub personal access token: " token
+  echo
+  if [ -z "$GITHUB_USER" ] || [ -z "$token" ]; then
+    echo "ERROR: GitHub username and token are required."
+    exit 1
+  fi
+else
+  GITHUB_USER="${GITHUB_USER:-natanbs}"
+fi
+
+# Configuration
+ARGOCD_SESSION_EXPIRES="${ARGOCD_SESSION_EXPIRES:-720h}"
+ARGOCD_INFRA_BRANCH="${ARGOCD_INFRA_BRANCH:-main}"
 
 # Detect OS and architecture
 OS=""
@@ -71,6 +102,46 @@ install_tool() {
 }
 
 install_tool k3d
+
+# Create GitHub repository credential for ArgoCD
+create_github_credential() {
+  echo "Creating GitHub repository credential for ArgoCD..."
+  kubectl apply -n argocd -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-repo-cred
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  url: https://github.com/natanbs
+  username: "${GITHUB_USER}"
+  password: "${token}"
+EOF
+  echo "GitHub credential created."
+}
+
+# Deploy ApplicationSet from infra repo
+deploy_applicationset() {
+  echo "Deploying ApplicationSet from infra repo (branch: ${ARGOCD_INFRA_BRANCH})..."
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  local manifest="${tmpdir}/applicationset.yaml"
+  
+  curl -sL "https://raw.githubusercontent.com/natanbs/argocd-infra/${ARGOCD_INFRA_BRANCH}/applicationset.yaml" -o "$manifest"
+  
+  if [ ! -s "$manifest" ]; then
+    echo "ERROR: Failed to fetch ApplicationSet manifest from branch ${ARGOCD_INFRA_BRANCH}"
+    rm -rf "$tmpdir"
+    exit 1
+  fi
+  
+  kubectl apply -n argocd -f "$manifest"
+  rm -rf "$tmpdir"
+  echo "ApplicationSet deployed."
+}
 
 # Check all mapped host ports before binding
 MAPPED_PORTS=(80 443)
@@ -130,6 +201,9 @@ install_tool kubectl
 kubectl get namespace argocd >/dev/null 2>&1 || kubectl create namespace argocd
 kubectl apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
+# Enable insecure mode (HTTP on port 8080, HTTPS on 8443) and configure session expiry
+kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge -p "{\"data\":{\"server.insecure\":\"true\",\"server.session.expires\":\"${ARGOCD_SESSION_EXPIRES}\"}}"
+
 # Get server IP (cross-platform)
 if [ "$OS" = "macos" ]; then
   IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "127.0.0.1")
@@ -142,48 +216,48 @@ kubectl patch svc argocd-server -n argocd -p '{"spec" : {"type": "LoadBalancer",
 # Patch argocd-server ports to avoid Traefik conflict (Traefik keeps default 80/443)
 kubectl patch svc argocd-server -n argocd --type='json' -p='[
   {"op": "replace", "path": "/spec/ports/0/port", "value": 8081},
-  {"op": "replace", "path": "/spec/ports/1/port", "value": 8443}
+  {"op": "replace", "path": "/spec/ports/0/targetPort", "value": 8080},
+  {"op": "replace", "path": "/spec/ports/1/port", "value": 8443},
+  {"op": "replace", "path": "/spec/ports/1/targetPort", "value": 8443}
 ]'
 
 # ArgoCD cli
 install_tool argocd
 
-echo "Waiting for initial-password..."
+echo "Waiting for ArgoCD server to be ready..."
+kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
+
+echo "Waiting for initial-password secret..."
 until kubectl get secret argocd-initial-admin-secret -n argocd >/dev/null 2>&1; do
 	sleep 5
 done
 
-# Init passwd
-init_pass=$(argocd admin initial-password -n argocd | head -1)
+# Read password directly from secret (avoids argocd CLI connection issue)
+init_pass=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d)
 echo $init_pass
-
-echo Add argocd ingress
-kubectl apply -f argo-ingress.yaml
-
-echo Generate self-signed TLS certificate for HTTPS
-openssl req -x509 -newkey rsa:4096 -nodes \
-  -keyout /tmp/argocd-tls-key.pem \
-  -out /tmp/argocd-tls-cert.pem \
-  -days 365 -subj "/CN=localhost/O=ArgoCD" 2>/dev/null
-kubectl create secret tls argocd-tls -n argocd \
-  --cert=/tmp/argocd-tls-cert.pem \
-  --key=/tmp/argocd-tls-key.pem 2>/dev/null
-rm -f /tmp/argocd-tls-*.pem
 
 echo
 sleep 30
 
-admin_pass=ChangeMe
+# ArgoCD requires: 8+ chars, uppercase, lowercase, digit, special char
+admin_pass="Changeme@1"
 
-# Login with initial password (first run) or admin password (re-run)
-# --port-forward: argocd-server has no host port binding; reach it via kubectl
-if argocd login localhost:8081 --port-forward --username admin --password $init_pass --insecure 2>/dev/null; then
-  echo Set admin password to $admin_pass
-  echo Change admin password
-  argocd account update-password --current-password $init_pass --new-password $admin_pass
-else
-  argocd login localhost:8081 --port-forward --username admin --password $admin_pass --insecure
-fi
+# Change admin password via ArgoCD CLI
+echo "Changing ArgoCD admin password..."
+kubectl port-forward -n argocd svc/argocd-server 8081:8081 &
+PF_PID=$!
+sleep 3
+
+argocd login localhost:8081 --username admin --password "$init_pass" --plaintext
+yes | argocd account update-password --current-password "$init_pass" --new-password "$admin_pass"
+sleep 2
+
+kill $PF_PID 2>/dev/null
+echo "Admin password updated to: $admin_pass"
+
+# Configure GitHub access and deploy ApplicationSet
+create_github_credential
+deploy_applicationset
 
 # Create the app image
 echo Build image
