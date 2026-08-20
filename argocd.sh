@@ -276,6 +276,15 @@ done
 rm -rf "$tmpdir"
 echo "All repositories registered."
 
+# Install External Secrets Operator CRDs before any apps that depend on them
+echo "Installing External Secrets Operator..."
+helm repo add external-secrets https://charts.external-secrets.io 2>/dev/null || true
+helm repo update external-secrets
+helm upgrade --install external-secrets external-secrets/external-secrets \
+  --namespace external-secrets --create-namespace \
+  --wait --timeout 120s
+echo "External Secrets Operator installed."
+
 # Deploy ApplicationSet
 deploy_applicationset
 
