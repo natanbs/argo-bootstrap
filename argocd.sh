@@ -301,6 +301,13 @@ argocd app create external-secrets \
 argocd app wait external-secrets --timeout 120
 echo "external-secrets app synced and healthy."
 
+# Wait for ClusterSecretStore to be ready (vault's ExternalSecret depends on it)
+echo "Waiting for ClusterSecretStore to be ready..."
+until kubectl get clustersecretstore kubernetes-store -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null | grep -q "True"; do
+  sleep 5
+done
+echo "ClusterSecretStore is ready."
+
 # Deploy ApplicationSet (remaining apps)
 deploy_applicationset
 
