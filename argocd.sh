@@ -256,7 +256,14 @@ echo "Port-forward ready."
 
 if argocd login localhost:8081 --username admin --password "$init_pass" --plaintext; then
   echo "Login successful."
-  yes | argocd account update-password --current-password "$init_pass" --new-password "$admin_pass" && echo "Password changed to: $admin_pass" || echo "ERROR: Password change failed"
+  yes | argocd account update-password --current-password "$init_pass" --new-password "$admin_pass" && echo "Password change command succeeded" || echo "ERROR: Password change failed"
+  # Verify the new password works
+  sleep 2
+  if argocd login localhost:8081 --username admin --password "$admin_pass" --plaintext; then
+    echo "VERIFIED: Password changed to: $admin_pass"
+  else
+    echo "ERROR: Could not verify new password — try: argocd login localhost:8081 --username admin --password '$admin_pass' --plaintext"
+  fi
 else
   echo "ERROR: ArgoCD login failed — password not changed"
 fi
