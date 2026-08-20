@@ -114,8 +114,9 @@ metadata:
   namespace: argocd
   labels:
     argocd.argoproj.io/secret-type: repository
-type: kubernetes.io/basic-auth
+type: Opaque
 stringData:
+  url: https://github.com/natanbs
   username: "${GITHUB_USER}"
   password: "${token}"
 EOF
@@ -239,7 +240,7 @@ echo
 sleep 30
 
 # ArgoCD requires: 8+ chars, uppercase, lowercase, digit, special char
-admin_pass="ChangeMe#2026"
+admin_pass="Changeme@1"
 
 # Change admin password via ArgoCD CLI
 echo "Changing ArgoCD admin password..."
