@@ -246,10 +246,15 @@ admin_pass="Changeme@1"
 echo "Changing ArgoCD admin password..."
 kubectl port-forward -n argocd svc/argocd-server 8081:8081 &
 PF_PID=$!
-sleep 3
+sleep 5
+
+# Wait for port-forward to be ready
+until curl -s http://localhost:8081 > /dev/null 2>&1; do
+  sleep 2
+done
 
 argocd login localhost:8081 --username admin --password "$init_pass" --plaintext
-yes | argocd account update-password --current-password "$init_pass" --new-password "$admin_pass"
+argocd account update-password --current-password "$init_pass" --new-password "$admin_pass" --yes
 sleep 2
 
 kill $PF_PID 2>/dev/null
