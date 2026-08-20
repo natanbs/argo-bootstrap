@@ -256,17 +256,28 @@ else
   echo "ERROR: Could not verify new password"
 fi
 
-# Register GitHub repo with ArgoCD
-echo "Registering GitHub repository with ArgoCD..."
-if argocd repo add https://github.com/natanbs/argocd-infra.git --username "$GITHUB_USER" --password "$token" --upsert; then
-  echo "GitHub repository registered."
-else
-  echo "ERROR: Failed to register GitHub repository"
-  kill $PF_PID 2>/dev/null
-  exit 1
-fi
+# Register GitHub credentials for all repos under the GitHub user (credential template)
+echo "Creating GitHub credential template for ArgoCD..."
+kubectl apply -n argocd -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-repo-cred
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository-credentials
+type: Opaque
+stringData:
+  url: https://github.com/natanbs/
+  username: "${GITHUB_USER}"
+  password: "${token}"
+EOF
+echo "Restarting repo-server to load credential template..."
+kubectl rollout restart deployment/argocd-repo-server -n argocd
+kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=120s
+echo "GitHub credential template created."
 
-# Deploy ApplicationSet (repo is now registered, credential is available)
+# Deploy ApplicationSet (credential template covers argocd-infra.git)
 deploy_applicationset
 
 # Cleanup port-forward
