@@ -103,28 +103,7 @@ install_tool() {
 
 install_tool k3d
 
-# Create GitHub repository credential for ArgoCD
-create_github_credential() {
-  echo "Creating GitHub repository credential for ArgoCD..."
-  kubectl apply -n argocd -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: github-repo-cred
-  namespace: argocd
-  labels:
-    argocd.argoproj.io/secret-type: repository
-type: Opaque
-stringData:
-  url: https://github.com/natanbs/
-  username: "${GITHUB_USER}"
-  password: "${token}"
-EOF
-  echo "Restarting repo-server to pick up new credential..."
-  kubectl rollout restart deployment/argocd-repo-server -n argocd
-  kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=120s
-  echo "GitHub credential created."
-}
+
 
 # Deploy ApplicationSet from infra repo
 deploy_applicationset() {
@@ -245,39 +224,49 @@ sleep 30
 # ArgoCD requires: 8+ chars, uppercase, lowercase, digit, special char
 admin_pass="Changeme@1"
 
-# Change admin password via ArgoCD CLI
-echo "Changing ArgoCD admin password..."
+# Start port-forward and keep alive for login, password change, and repo registration
+echo "Starting port-forward to ArgoCD..."
 kubectl port-forward -n argocd svc/argocd-server 8081:8081 &
 PF_PID=$!
 sleep 5
 
-# Wait for port-forward to be ready
 until curl -sf http://localhost:8081/healthz > /dev/null 2>&1; do
   sleep 2
 done
 echo "Port-forward ready."
 
-if argocd login localhost:8081 --username admin --password "$init_pass" --plaintext; then
-  echo "Login successful."
-  yes | argocd account update-password --current-password "$init_pass" --new-password "$admin_pass" && echo "Password change command succeeded" || echo "ERROR: Password change failed"
-  # Verify the new password works
-  sleep 2
-  if argocd login localhost:8081 --username admin --password "$admin_pass" --plaintext; then
-    echo "VERIFIED: Password changed to: $admin_pass"
-  else
-    echo "ERROR: Could not verify new password — try: argocd login localhost:8081 --username admin --password '$admin_pass' --plaintext"
-  fi
-else
-  echo "ERROR: ArgoCD login failed — password not changed"
+# Login with initial password
+echo "Logging in to ArgoCD..."
+if ! argocd login localhost:8081 --username admin --password "$init_pass" --plaintext; then
+  echo "ERROR: ArgoCD login failed"
+  kill $PF_PID 2>/dev/null
+  exit 1
 fi
+echo "Login successful."
+
+# Change admin password
+echo "Changing ArgoCD admin password..."
+yes | argocd account update-password --current-password "$init_pass" --new-password "$admin_pass"
 sleep 2
+if argocd login localhost:8081 --username admin --password "$admin_pass" --plaintext; then
+  echo "VERIFIED: Password changed to: $admin_pass"
+else
+  echo "ERROR: Could not verify new password"
+fi
 
-kill $PF_PID 2>/dev/null
-echo "Admin password updated to: $admin_pass"
+# Register GitHub repo with ArgoCD
+echo "Registering GitHub repository with ArgoCD..."
+if argocd repo add https://github.com/natanbs/argocd-infra.git --username "$GITHUB_USER" --password "$token" --upsert; then
+  echo "GitHub repository registered."
+else
+  echo "ERROR: Failed to register GitHub repository"
+fi
 
-# Configure GitHub access and deploy ApplicationSet
-create_github_credential
+# Deploy ApplicationSet (repo is now registered, credential is available)
 deploy_applicationset
+
+# Cleanup port-forward
+kill $PF_PID 2>/dev/null
 
 # Create the app image
 echo Build image
