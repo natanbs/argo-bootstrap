@@ -256,39 +256,27 @@ else
   echo "ERROR: Could not verify new password"
 fi
 
-# Register GitHub repo with ArgoCD (proven working for ApplicationSet git generator)
-echo "Registering GitHub repository with ArgoCD..."
-if argocd repo add https://github.com/natanbs/argocd-infra.git --username "$GITHUB_USER" --password "$token" --upsert; then
-  echo "GitHub repository registered."
-else
-  echo "ERROR: Failed to register GitHub repository"
-  kill $PF_PID 2>/dev/null
-  exit 1
-fi
+# Register all GitHub repos with ArgoCD
+echo "Registering GitHub repositories with ArgoCD..."
+tmpdir=$(mktemp -d)
 
-# Also create credential template for all other repos under the GitHub user
-echo "Creating GitHub credential template for ArgoCD..."
-kubectl apply -n argocd -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: github-repo-cred
-  namespace: argocd
-  labels:
-    argocd.argoproj.io/secret-type: repository-credentials
-type: Opaque
-stringData:
-  url: https://github.com/natanbs/
-  username: "${GITHUB_USER}"
-  password: "${token}"
-EOF
-echo "Restarting repo-server to load credential template..."
-kubectl rollout restart deployment/argocd-repo-server -n argocd
-kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=120s
-sleep 10
-echo "GitHub credential template created."
+# Register the infra repo first
+argocd repo add https://github.com/natanbs/argocd-infra.git --username "$GITHUB_USER" --password "$token" --upsert
 
-# Deploy ApplicationSet (repo is registered, credential template covers app repos)
+# Fetch app definitions and register each repo
+curl -sL -u "${GITHUB_USER}:${token}" "https://raw.githubusercontent.com/natanbs/argocd-infra/${ARGOCD_INFRA_BRANCH}/apps/*.yaml" -o "$tmpdir/apps.txt" 2>/dev/null || true
+
+for appfile in $(curl -sL -u "${GITHUB_USER}:${token}" "https://api.github.com/repos/natanbs/argocd-infra/contents/apps?ref=${ARGOCD_INFRA_BRANCH}" 2>/dev/null | python3 -c "import sys,json; [print(f['download_url']) for f in json.load(sys.stdin) if f['name'].endswith('.yaml')]" 2>/dev/null); do
+  repo_url=$(curl -sL -u "${GITHUB_USER}:${token}" "$appfile" | grep 'repoURL:' | awk '{print $2}')
+  if [ -n "$repo_url" ]; then
+    echo "  Adding $repo_url ..."
+    argocd repo add "$repo_url" --username "$GITHUB_USER" --password "$token" --upsert
+  fi
+done
+rm -rf "$tmpdir"
+echo "All repositories registered."
+
+# Deploy ApplicationSet
 deploy_applicationset
 
 # Cleanup port-forward
