@@ -130,7 +130,7 @@ deploy_applicationset() {
   tmpdir=$(mktemp -d)
   local manifest="${tmpdir}/applicationset.yaml"
   
-  curl -sL "https://raw.githubusercontent.com/natanbs/argocd-infra/${ARGOCD_INFRA_BRANCH}/argocd-infra/applicationset.yaml" -o "$manifest"
+  curl -sL "https://raw.githubusercontent.com/natanbs/argocd-infra/${ARGOCD_INFRA_BRANCH}/applicationset.yaml" -o "$manifest"
   
   if [ ! -s "$manifest" ]; then
     echo "ERROR: Failed to fetch ApplicationSet manifest from branch ${ARGOCD_INFRA_BRANCH}"
