@@ -332,15 +332,29 @@ kubectl -n vault create secret generic vault-unseal-keys \
 # Deploy ApplicationSet (remaining apps)
 deploy_applicationset
 
-# Initialize and unseal vault on fresh cluster
-echo "Waiting for vault-0 pod to appear and be running..."
-until kubectl get pod vault-0 -n vault -o jsonpath='{.status.phase}' 2>/dev/null | grep -q "Running"; do
+# Wait for vault-tls secret to be synced to vault namespace (ESO must sync before vault starts TLS listener)
+echo "Waiting for vault-tls secret in vault namespace..."
+until kubectl get secret vault-tls -n vault >/dev/null 2>&1; do
   sleep 5
 done
-echo "vault-0 is running."
+echo "vault-tls secret is ready."
+
+# Initialize and unseal vault on fresh cluster
+echo "Waiting for vault-0 API to be reachable..."
+TIMEOUT=60
+COUNT=0
+until kubectl exec -n vault vault-0 -- vault status -tls-skip-verify -format=json 2>/dev/null | grep -q '"initialized"'; do
+  COUNT=$((COUNT + 1))
+  if [ $COUNT -ge $TIMEOUT ]; then
+    echo "ERROR: Timed out waiting for vault-0 API after $((TIMEOUT * 5))s"
+    exit 1
+  fi
+  sleep 5
+done
+echo "vault-0 API is reachable."
 
 echo "Initializing vault..."
-INIT_JSON=$(kubectl exec -n vault vault-0 -- vault operator init -key-shares=5 -key-threshold=3 -format=json)
+INIT_JSON=$(kubectl exec -n vault vault-0 -- vault operator init -key-shares=5 -key-threshold=3 -format=json -tls-skip-verify)
 if [[ -z "$INIT_JSON" ]] || ! echo "$INIT_JSON" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
   echo "ERROR: vault operator init failed or returned invalid JSON"
   echo "Output: $INIT_JSON"
@@ -362,13 +376,84 @@ kubectl -n vault create secret generic vault-unseal-keys \
   --from-literal=key2="$KEY2" \
   --from-literal=key3="$KEY3"
 
-# Unseal all vault replicas
-for i in 0 1 2; do
-  echo "Unsealing vault-${i}..."
-  kubectl exec -n vault "vault-${i}" -- vault operator unseal "$KEY1" 2>/dev/null || true
-  kubectl exec -n vault "vault-${i}" -- vault operator unseal "$KEY2" 2>/dev/null || true
-  kubectl exec -n vault "vault-${i}" -- vault operator unseal "$KEY3" 2>/dev/null || true
+# Unseal vault-0 (must be unsealed before StatefulSet creates vault-1)
+echo "Unsealing vault-0..."
+for key in "$KEY1" "$KEY2" "$KEY3"; do
+  kubectl exec -n vault vault-0 -- vault operator unseal -tls-skip-verify "$key" || { echo "ERROR: failed to unseal vault-0 with key"; exit 1; }
 done
+echo "vault-0 unsealed. Waiting for it to be ready..."
+if ! kubectl wait --for=condition=Ready pod/vault-0 -n vault --timeout=120s; then
+  echo "ERROR: vault-0 did not become Ready within 120s"
+  exit 1
+fi
+# Verify vault-0 is actually unsealed
+SEALED=$(kubectl exec -n vault vault-0 -- vault status -tls-skip-verify -format=json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['sealed'])" 2>/dev/null)
+if [ "$SEALED" != "False" ]; then
+  echo "ERROR: vault-0 is still sealed after unseal (sealed=$SEALED)"
+  exit 1
+fi
+echo "vault-0 verified: sealed=False"
+
+# Unseal vault-1 (must be unsealed before StatefulSet creates vault-2)
+echo "Waiting for vault-1 to join raft cluster (initialized)..."
+TIMEOUT=60
+COUNT=0
+until kubectl exec -n vault vault-1 -- vault status -tls-skip-verify -format=json 2>/dev/null | python3 -c "import sys,json; exit(0 if json.load(sys.stdin).get('initialized') else 1)"; do
+  COUNT=$((COUNT + 1))
+  if [ $COUNT -ge $TIMEOUT ]; then
+    echo "ERROR: Timed out waiting for vault-1 to initialize after $((TIMEOUT * 5))s"
+    exit 1
+  fi
+  sleep 5
+done
+echo "vault-1 joined raft cluster."
+echo "Unsealing vault-1..."
+for key in "$KEY1" "$KEY2" "$KEY3"; do
+  kubectl exec -n vault vault-1 -- vault operator unseal -tls-skip-verify "$key" || { echo "ERROR: failed to unseal vault-1 with key"; exit 1; }
+done
+echo "vault-1 unsealed. Waiting for it to be ready..."
+if ! kubectl wait --for=condition=Ready pod/vault-1 -n vault --timeout=120s; then
+  echo "ERROR: vault-1 did not become Ready within 120s"
+  exit 1
+fi
+# Verify vault-1 is actually unsealed
+SEALED=$(kubectl exec -n vault vault-1 -- vault status -tls-skip-verify -format=json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['sealed'])" 2>/dev/null)
+if [ "$SEALED" != "False" ]; then
+  echo "ERROR: vault-1 is still sealed after unseal (sealed=$SEALED)"
+  exit 1
+fi
+echo "vault-1 verified: sealed=False"
+
+# Unseal vault-2
+echo "Waiting for vault-2 to join raft cluster (initialized)..."
+TIMEOUT=60
+COUNT=0
+until kubectl exec -n vault vault-2 -- vault status -tls-skip-verify -format=json 2>/dev/null | python3 -c "import sys,json; exit(0 if json.load(sys.stdin).get('initialized') else 1)"; do
+  COUNT=$((COUNT + 1))
+  if [ $COUNT -ge $TIMEOUT ]; then
+    echo "ERROR: Timed out waiting for vault-2 to initialize after $((TIMEOUT * 5))s"
+    exit 1
+  fi
+  sleep 5
+done
+echo "vault-2 joined raft cluster."
+echo "Unsealing vault-2..."
+for key in "$KEY1" "$KEY2" "$KEY3"; do
+  kubectl exec -n vault vault-2 -- vault operator unseal -tls-skip-verify "$key" || { echo "ERROR: failed to unseal vault-2 with key"; exit 1; }
+done
+echo "vault-2 unsealed. Waiting for it to be ready..."
+if ! kubectl wait --for=condition=Ready pod/vault-2 -n vault --timeout=120s; then
+  echo "ERROR: vault-2 did not become Ready within 120s"
+  exit 1
+fi
+# Verify vault-2 is actually unsealed
+SEALED=$(kubectl exec -n vault vault-2 -- vault status -tls-skip-verify -format=json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['sealed'])" 2>/dev/null)
+if [ "$SEALED" != "False" ]; then
+  echo "ERROR: vault-2 is still sealed after unseal (sealed=$SEALED)"
+  exit 1
+fi
+echo "vault-2 verified: sealed=False"
+
 echo "Vault initialized and unsealed."
 
 # Cleanup port-forward
