@@ -360,7 +360,7 @@ vault_exec() {
 
 # Diagnostic: show what VAULT_ADDR is inside a vault pod
 echo "Checking VAULT_ADDR inside vault-0..."
-kubectl exec -n vault vault-0 -- sh -c 'echo "VAULT_ADDR=$VAULT_ADDR"' 2>/dev/null || echo "(could not read VAULT_ADDR)"
+kubectl exec -n vault vault-0 -- printenv VAULT_ADDR 2>/dev/null || echo "(could not read VAULT_ADDR)"
 
 echo "Waiting for vault-0 API to be reachable..."
 TIMEOUT=60
@@ -401,7 +401,7 @@ kubectl -n vault create secret generic vault-unseal-keys \
 # Unseal vault-0 (must be unsealed before StatefulSet creates vault-1)
 echo "Unsealing vault-0..."
 for key in "$KEY1" "$KEY2" "$KEY3"; do
-  vault_exec vault-0 "vault operator unseal -tls-skip-verify '$key'" || { echo "ERROR: failed to unseal vault-0 with key"; exit 1; }
+  vault_exec vault-0 "vault operator unseal -format=json -tls-skip-verify '$key'" > /dev/null || { echo "ERROR: failed to unseal vault-0 with key"; exit 1; }
 done
 echo "vault-0 unsealed. Waiting for it to be ready..."
 if ! kubectl wait --for=condition=Ready pod/vault-0 -n vault --timeout=120s; then
@@ -431,7 +431,7 @@ done
 echo "vault-1 joined raft cluster."
 echo "Unsealing vault-1..."
 for key in "$KEY1" "$KEY2" "$KEY3"; do
-  RESULT=$(vault_exec vault-1 "vault operator unseal -tls-skip-verify '$key'" 2>&1)
+  RESULT=$(vault_exec vault-1 "vault operator unseal -format=json -tls-skip-verify '$key'" 2>&1)
   UNSEAL_EXIT=$?
   echo "  key applied, sealed=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('sealed','?'))" 2>/dev/null || echo "parse-error")"
   if [ $UNSEAL_EXIT -ne 0 ]; then
@@ -467,7 +467,7 @@ done
 echo "vault-2 joined raft cluster."
 echo "Unsealing vault-2..."
 for key in "$KEY1" "$KEY2" "$KEY3"; do
-  RESULT=$(vault_exec vault-2 "vault operator unseal -tls-skip-verify '$key'" 2>&1)
+  RESULT=$(vault_exec vault-2 "vault operator unseal -format=json -tls-skip-verify '$key'" 2>&1)
   UNSEAL_EXIT=$?
   echo "  key applied, sealed=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('sealed','?'))" 2>/dev/null || echo "parse-error")"
   if [ $UNSEAL_EXIT -ne 0 ]; then
