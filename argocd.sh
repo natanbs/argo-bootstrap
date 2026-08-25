@@ -404,8 +404,8 @@ for key in "$KEY1" "$KEY2" "$KEY3"; do
   vault_exec vault-0 "vault operator unseal -format=json -tls-skip-verify '$key'" > /dev/null || { echo "ERROR: failed to unseal vault-0 with key"; exit 1; }
 done
 echo "vault-0 unsealed. Waiting for it to be ready..."
-if ! kubectl wait --for=condition=Ready pod/vault-0 -n vault --timeout=120s; then
-  echo "ERROR: vault-0 did not become Ready within 120s"
+if ! kubectl wait --for=condition=Ready pod/vault-0 -n vault --timeout=300s; then
+  echo "ERROR: vault-0 did not become Ready within 300s"
   exit 1
 fi
 # Verify vault-0 is actually unsealed
@@ -440,8 +440,8 @@ for key in "$KEY1" "$KEY2" "$KEY3"; do
   fi
 done
 echo "vault-1 unsealed. Waiting for it to be ready..."
-if ! kubectl wait --for=condition=Ready pod/vault-1 -n vault --timeout=120s; then
-  echo "ERROR: vault-1 did not become Ready within 120s"
+if ! kubectl wait --for=condition=Ready pod/vault-1 -n vault --timeout=300s; then
+  echo "ERROR: vault-1 did not become Ready within 300s"
   exit 1
 fi
 # Verify vault-1 is actually unsealed
@@ -476,8 +476,8 @@ for key in "$KEY1" "$KEY2" "$KEY3"; do
   fi
 done
 echo "vault-2 unsealed. Waiting for it to be ready..."
-if ! kubectl wait --for=condition=Ready pod/vault-2 -n vault --timeout=120s; then
-  echo "ERROR: vault-2 did not become Ready within 120s"
+if ! kubectl wait --for=condition=Ready pod/vault-2 -n vault --timeout=300s; then
+  echo "ERROR: vault-2 did not become Ready within 300s"
   exit 1
 fi
 # Verify vault-2 is actually unsealed
