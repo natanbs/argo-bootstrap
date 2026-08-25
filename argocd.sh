@@ -55,6 +55,13 @@ fi
 ARGOCD_SESSION_EXPIRES="${ARGOCD_SESSION_EXPIRES:-720h}"
 ARGOCD_INFRA_BRANCH="${ARGOCD_INFRA_BRANCH:-main}"
 
+# Log all output to file
+LOG_FILE="/tmp/argocd.log"
+: > "$LOG_FILE"
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "=== argocd.sh started at $(date) ==="
+echo "Log file: $LOG_FILE"
+
 # Detect OS and architecture
 OS=""
 ARCH=""
