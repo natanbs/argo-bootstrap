@@ -314,6 +314,7 @@ deploy_applicationset
 wait_for_vault_tls
 init_vault "$VAULT_REPO"
 unseal_vault
+enable_vault_secrets
 verify_vault_status
 
 # Cleanup port-forward

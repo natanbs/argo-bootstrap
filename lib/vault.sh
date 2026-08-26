@@ -195,6 +195,16 @@ unseal_vault() {
   echo "[vault] Vault initialized and unsealed."
 }
 
+# Enable KV v2 secrets engine at secret/
+# Usage: enable_vault_secrets
+enable_vault_secrets() {
+  echo "[vault] Enabling KV v2 secrets engine at secret/..."
+  vault_exec vault-0 "vault secrets enable -path=secret kv-v2 -tls-skip-verify" 2>/dev/null || {
+    echo "[vault] WARNING: KV v2 engine may already be enabled (continuing)"
+  }
+  echo "[vault] KV v2 secrets engine ready."
+}
+
 # Verify vault cluster status
 # Usage: verify_vault_status
 verify_vault_status() {
