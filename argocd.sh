@@ -241,10 +241,19 @@ until curl -sf http://localhost:8081/healthz > /dev/null 2>&1; do
 done
 echo "Port-forward ready."
 
-# Login with initial password
+# Login with initial password (retry up to 5 times — port-forward may be flaky on fresh deploy)
 echo "Logging in to ArgoCD..."
-if ! argocd login localhost:8081 --username admin --password "$init_pass" --plaintext; then
-  echo "ERROR: ArgoCD login failed"
+login_ok=false
+for attempt in 1 2 3 4 5; do
+  if argocd login localhost:8081 --username admin --password "$init_pass" --plaintext 2>/dev/null; then
+    login_ok=true
+    break
+  fi
+  echo "  Login attempt $attempt failed, retrying in 5s..."
+  sleep 5
+done
+if [ "$login_ok" != "true" ]; then
+  echo "ERROR: ArgoCD login failed after 5 attempts"
   kill $PF_PID 2>/dev/null
   exit 1
 fi
@@ -269,18 +278,24 @@ tmpdir=$(mktemp -d)
 argocd repo add https://github.com/natanbs/argocd-infra.git --username "$GITHUB_USER" --password "$token" --upsert || echo "WARNING: Failed to add infra repo (may already exist)"
 
 # Fetch app definitions and register each repo
+# ApplicationSet reads from apps/infra/*.yaml and apps/applicative/*.yaml
 
-for appfile in $(curl -sL -u "${GITHUB_USER}:${token}" "https://api.github.com/repos/natanbs/argocd-infra/contents/apps?ref=${ARGOCD_INFRA_BRANCH}" 2>/dev/null | jq -r '.[] | select(.name | endswith(".yaml")) | .download_url' 2>/dev/null); do
-  repo_url=$(curl -sL -u "${GITHUB_USER}:${token}" "$appfile" 2>/dev/null | grep 'repoURL:' | awk '{print $2}')
-  if [ -n "$repo_url" ]; then
-    echo "  Adding $repo_url ..."
-    argocd repo add "$repo_url" --username "$GITHUB_USER" --password "$token" --upsert || echo "  WARNING: Failed to add $repo_url (may already exist)"
-  else
-    echo "  WARNING: Could not fetch repoURL from $appfile (skipping)"
-  fi
+for subdir in infra applicative; do
+  for appfile in $(curl -sL -u "${GITHUB_USER}:${token}" "https://api.github.com/repos/natanbs/argocd-infra/contents/apps/${subdir}?ref=${ARGOCD_INFRA_BRANCH}" 2>/dev/null | jq -r '.[] | select(.name | endswith(".yaml")) | .download_url' 2>/dev/null); do
+    repo_url=$(curl -sL -u "${GITHUB_USER}:${token}" "$appfile" 2>/dev/null | grep 'repoURL:' | awk '{print $2}')
+    if [ -n "$repo_url" ]; then
+      echo "  Adding $repo_url ..."
+      argocd repo add "$repo_url" --username "$GITHUB_USER" --password "$token" --upsert || echo "  WARNING: Failed to add $repo_url (may already exist)"
+    else
+      echo "  WARNING: Could not fetch repoURL from $appfile (skipping)"
+    fi
+  done
 done
 rm -rf "$tmpdir"
 echo "All repositories registered."
+
+# Register external-secrets repo (referenced by ESO ArgoCD app, not in apps/*.yaml)
+argocd repo add https://github.com/natanbs/external-secrets.git --username "$GITHUB_USER" --password "$token" --upsert || echo "WARNING: Failed to add external-secrets repo (may already exist)"
 
 # Install External Secrets Operator and deploy via ArgoCD
 install_eso_helm
