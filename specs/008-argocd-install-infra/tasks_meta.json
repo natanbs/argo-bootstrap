@@ -1,5 +1,18 @@
 {
-    "feature": "008-argocd-install-infra",
-    "created": "2026-08-19T22:35:20+03:00",
-    "tasks": {}
+  "feature": "008-argocd-install-infra",
+  "created": "2026-08-25T22:47:34+03:00",
+  "tasks": {
+    "T014": {
+      "status": "completed",
+      "started_at": "2026-08-25T22:50:20+03:00",
+      "completed_at": "2026-08-25T22:50:37+03:00",
+      "result_summary": "Vault 3/3 Running on 8200, Prometheus 8 pods Running on 9090, ESO 3 pods Running. All infrastructure services accessible."
+    },
+    "T011": {
+      "status": "completed",
+      "started_at": "2026-08-25T22:50:46+03:00",
+      "completed_at": "2026-08-25T23:00:55+03:00",
+      "result_summary": "Idempotent re-run succeeded. All 3 vault pods unsealed, ESO running, 3 infra apps Healthy. No errors in log. Vault status output clean (sealed=False)."
+    }
+  }
 }
