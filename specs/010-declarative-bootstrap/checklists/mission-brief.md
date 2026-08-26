@@ -2,6 +2,7 @@
 
 **Purpose**: Validate mission brief completeness and quality before implementation
 **Created**: 2026-08-25
+**Updated**: 2026-08-26
 **Feature**: [spec.md](spec.md)
 
 ## Mission Brief Adequacy
@@ -21,8 +22,17 @@
 
 - **CHK006**: No Demo Sentence exists in the spec. Optional — not blocking implementation.
 
-## Notes
+## Evaluation Notes
 
-- CHK002 fixed: SC-001 now specifies "all 6 repos", SC-002 specifies exact ConfigMap keys, SC-004 specifies "python3 no longer appears".
-- CHK005 fixed: Goal now says "eliminates Python dependency" instead of "fragile".
-- US3 merged into US1 (duplication resolved).
+- **CHK001 PASS**: Goal identifies exact file (`argocd.sh`), exact code pattern (Python JSON parser), exact replacement (`jq`), and verifiable outcome (robustness + reduced dependencies)
+- **CHK002 PASS**: SC-001 quantified ("all 6 repos"), SC-002 quantified (exact ConfigMap keys + default 720h), SC-004 quantified ("python3 no longer appears")
+- **CHK003 PASS**: 5 constraints explicitly bound scope — service patch stays imperative, token not in git, single entry point, idempotent, argocd repo add (not kubectl)
+- **CHK004 PASS**: US1 → SC-001 + SC-004; US2 → SC-002; SC-003 covers end-to-end parity
+- **CHK005 PASS**: "fragile" justified by Python dependency; "robust" operationalized via jq replacement; "reliable" defined by idempotent `--upsert`
+- **CHK006 FAIL**: No Demo Sentence — optional, not blocking
+
+## Previous Fixes Applied
+
+- CHK002: SC-001 now specifies "all 6 repos", SC-002 specifies exact ConfigMap keys, SC-004 specifies "python3 no longer appears"
+- CHK005: Goal says "eliminates Python dependency" instead of "fragile"
+- Duplication: US3 merged into US1
