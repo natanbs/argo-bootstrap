@@ -16,25 +16,25 @@
 
 - [x] CHK006 - Is "correct repository and branch" in FR-004 resolved to a specific URL and revision? [Clarity, Spec §FR-004] → applicationset.yaml with ARGOCD_INFRA_BRANCH override (research R2)
 - [x] CHK007 - Is "existing bootstrap behavior" in FR-005 enumerated with specific behaviors to preserve? [Clarity, Spec §FR-005] → Listed in FR-005: k3d cluster, ArgoCD install, port config, password change
-- [ ] CHK008 - Is "within 5 minutes" in SC-001 defined with measurement start point (script start vs. ArgoCD install vs. ApplicationSet apply)? [Clarity, Spec §SC-001] → Measurement starts at script start
-- [ ] CHK009 - Is "within one sync interval" in SC-002 defined with the ArgoCD sync interval configuration? [Clarity, Spec §SC-002] → Needs verification of actual ArgoCD sync interval
+- [x] CHK008 - Is "within 5 minutes" in SC-001 defined with measurement start point (script start vs. ArgoCD install vs. ApplicationSet apply)? [Clarity, Spec §SC-001] → Resolved: measurement starts at script start
+- [x] CHK009 - Is "within one sync interval" in SC-002 defined with the ArgoCD sync interval configuration? [Clarity, Spec §SC-002] → Resolved: SC-002 changed to "within 5 minutes" (no sync interval qualifier)
 - [ ] CHK010 - Is "expected state" in SC-003 defined with specific resource states to verify? [Clarity, Spec §SC-003] → Partially defined in data-model.md state transitions
 
 ## Requirement Consistency
 
 - [x] CHK011 - Is the scope constraint ("only infrastructure apps") consistent with the ApplicationSet deploying all 5 registered apps (including familytree, pdf-scan)? [Conflict, Spec §Constraints vs. Plan §Summary] → Fixed: spec now states all 5 apps deploy via ApplicationSet
 - [x] CHK012 - Are the business apps (familytree, pdf-scan) explicitly listed as out-of-scope with their deploy behavior documented? [Consistency, Spec §Assumptions] → Research R5 explains all 5 deploy; no filtering
-- [ ] CHK013 - Does FR-009 ("NOT store token in version control") align with the verification method in SC-004 ("verified by checking .gitignore and commit history")? [Consistency, Spec §FR-009 vs §SC-004] → SC-004 verification method is imperfect but acceptable
+- [x] CHK013 - Does FR-009 ("NOT store token in version control") align with the verification method in SC-004 ("verified by checking .gitignore and commit history")? [Consistency, Spec §FR-009 vs §SC-004] → SC-004 verification method is imperfect but acceptable
 
 ## Acceptance Criteria Quality
 
 - [x] CHK014 - Can SC-001 ("all registered infra apps reaching Synced status") be objectively verified without knowing ArgoCD internals? [Measurability, Spec §SC-001] → Yes: `argocd app list` and `kubectl get pods`
-- [ ] CHK015 - Can SC-005 ("accessible via their respective services") be verified with specific service endpoints and ports? [Measurability, Spec §SC-005] → Needs service/port specifics from infra repo
+- [x] CHK015 - Can SC-005 ("accessible via their respective services") be verified with specific service endpoints and ports? [Measurability, Spec §SC-005] → Resolved: Vault:8200, Prometheus:9090, ESO: pod Running status
 - [x] CHK016 - Are acceptance scenarios for US-1 testable independently without requiring the full bootstrap? [Coverage, Spec §US-1] → Yes: each scenario has Given/When/Then format
 
 ## Scenario Coverage
 
-- [ ] CHK017 - Are requirements defined for partial bootstrap failure (e.g., ArgoCD installs but ApplicationSet fails to apply)? [Coverage, Gap] → Out of scope for v1; ArgoCD shows error status
+- [x] CHK017 - Are requirements defined for partial bootstrap failure (e.g., ArgoCD installs but ApplicationSet fails to apply)? [Coverage, Gap] → Resolved: FR-010 + Edge Cases define non-critical vs critical failure behavior
 - [ ] CHK018 - Are requirements defined for network partition between k3d cluster and GitHub during bootstrap? [Coverage, Gap] → Out of scope; ArgoCD retries automatically
 - [ ] CHK019 - Are requirements defined for concurrent bootstrap executions (two operators running argocd.sh simultaneously)? [Coverage, Gap] → Out of scope; kubectl apply is idempotent
 - [ ] CHK020 - Are requirements defined for ArgoCD version upgrade scenarios (ApplicationSet CRD compatibility)? [Coverage, Gap] → Out of scope; pinned to current ArgoCD version

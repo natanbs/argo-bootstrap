@@ -2,6 +2,7 @@
 
 **Purpose**: Validate mission brief oracle adequacy — is the spec clear enough to implement without ambiguity?
 **Created**: 2026-08-19
+**Updated**: 2026-08-25
 **Feature**: [spec.md](spec.md)
 
 ## Mission Brief Items
@@ -18,4 +19,4 @@
 **Verdict**: Needs refinement
 
 **Gaps**:
-- CHK006 — No Demo Sentence exists in the spec. An observable demo outcome should be defined (e.g., "Run `argocd.sh`, observe vault/prometheus/external-secrets pods running within 5 minutes").
+- CHK006 — No Demo Sentence exists in the spec. An observable demo outcome should be defined (e.g., "Run `argocd.sh` on a fresh k3d cluster, observe vault/prometheus/external-secrets pods running within 5 minutes, verify Vault responds on port 8200 and Prometheus on port 9090").
