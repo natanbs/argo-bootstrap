@@ -314,7 +314,10 @@ deploy_applicationset
 wait_for_vault_tls
 init_vault "$VAULT_REPO"
 unseal_vault
-enable_vault_secrets
+enable_vault_secrets "$VAULT_REPO"
+# Provision ESO Kubernetes auth + role es-vault + secret/aws/env so
+# applicative apps recover their secrets declaratively after a rebuild.
+provision_es_vault "$VAULT_REPO"
 verify_vault_status
 
 # Cleanup port-forward

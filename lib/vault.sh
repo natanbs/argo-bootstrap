@@ -196,13 +196,62 @@ unseal_vault() {
 }
 
 # Enable KV v2 secrets engine at secret/
-# Usage: enable_vault_secrets
+# Usage: enable_vault_secrets <vault_repo_path>
+# Uses the root token from init.json (a tokenless CLI call silently 403s).
 enable_vault_secrets() {
+  local vault_repo="$1"
   echo "[vault] Enabling KV v2 secrets engine at secret/..."
-  vault_exec vault-0 "vault secrets enable -path=secret kv-v2 -tls-skip-verify" 2>/dev/null || {
+  local root_token
+  root_token="$(python3 -c "import sys,json; print(json.load(open('$vault_repo/init.json'))['root_token'])")"
+  vault_exec vault-0 "VAULT_TOKEN='$root_token' vault secrets enable -path=secret kv-v2" 2>/dev/null || {
     echo "[vault] WARNING: KV v2 engine may already be enabled (continuing)"
   }
   echo "[vault] KV v2 secrets engine ready."
+}
+
+# Provision ESO Kubernetes auth (role es-vault) + seed secret/aws/env.
+# Idempotent; safe to run on every bootstrap after init + unseal so a
+# from-scratch rebuild restores s3-credentials with no manual steps
+# (declarative cluster recovery, specs/007).
+# Token reviewer = the `vault` SA (bound to system:auth-delegator via
+# vault-server-binding) whose JWT+CA are mounted in the vault-0 pod.
+# S3 creds from S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY (defaults: floci/floci1234)
+# Usage: provision_es_vault <vault_repo_path>
+provision_es_vault() {
+  local vault_repo="$1"
+  local root_token
+  root_token="$(python3 -c "import sys,json; print(json.load(open('$vault_repo/init.json'))['root_token'])")"
+
+  echo "[vault] Enabling Kubernetes auth method (kubernetes)..."
+  vault_exec vault-0 "VAULT_TOKEN='$root_token' vault auth enable -path=kubernetes kubernetes" 2>/dev/null || {
+    echo "[vault]   kubernetes auth already enabled (continuing)"
+  }
+
+  echo "[vault] Writing auth/kubernetes/config (token reviewer = vault SA)..."
+  vault_exec vault-0 "VAULT_TOKEN='$root_token' vault write auth/kubernetes/config \
+    kubernetes_host='https://kubernetes.default.svc:443' \
+    token_reviewer_jwt=@/var/run/secrets/kubernetes.io/serviceaccount/token \
+    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+    disable_iss_validation=true"
+
+  echo "[vault] Writing policy aws-read-env..."
+  local policy_b64
+  policy_b64="$(base64 < "$vault_repo/policies/aws-read-env.hcl" | tr -d '\n')"
+  vault_exec vault-0 "VAULT_TOKEN='$root_token' sh -c 'echo $policy_b64 | base64 -d > /tmp/aws-read-env.hcl && vault policy write aws-read-env /tmp/aws-read-env.hcl'"
+
+  echo "[vault] Writing role es-vault (SA apps-ns/es-vault-auth)..."
+  vault_exec vault-0 "VAULT_TOKEN='$root_token' vault write auth/kubernetes/role/es-vault \
+    bound_service_account_names='es-vault-auth' \
+    bound_service_account_namespaces='apps-ns' \
+    audience='https://kubernetes.default.svc.cluster.local' \
+    policies='aws-read-env' \
+    token_ttl=1h"
+
+  echo "[vault] Seeding secret/aws/env..."
+  local access_key="${S3_ACCESS_KEY_ID:-floci}"
+  local secret_key="${S3_SECRET_ACCESS_KEY:-floci1234}"
+  vault_exec vault-0 "VAULT_TOKEN='$root_token' vault kv put -mount=secret aws/env S3_ACCESS_KEY_ID='$access_key' S3_SECRET_ACCESS_KEY='$secret_key'"
+  echo "[vault] es-vault provisioning complete."
 }
 
 # Verify vault cluster status
