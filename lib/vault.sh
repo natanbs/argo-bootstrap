@@ -209,13 +209,16 @@ enable_vault_secrets() {
   echo "[vault] KV v2 secrets engine ready."
 }
 
-# Provision ESO Kubernetes auth (role es-vault) + seed secret/aws/env.
+# Provision ESO Kubernetes auth (roles es-vault, es-vault-analyst) + seed
+# secret/aws/env and secret/analyst/env.
 # Idempotent; safe to run on every bootstrap after init + unseal so a
-# from-scratch rebuild restores s3-credentials with no manual steps
-# (declarative cluster recovery, specs/007).
+# from-scratch rebuild restores s3-credentials and analyst-secrets with no
+# manual steps (declarative cluster recovery, specs/007).
 # Token reviewer = the `vault` SA (bound to system:auth-delegator via
 # vault-server-binding) whose JWT+CA are mounted in the vault-0 pod.
 # S3 creds from S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY (defaults: floci/floci1234)
+# Analyst key from ANALYST_ZEN_API_KEY_B64 (NO default - real credential;
+#   store base64 form; ExternalSecret decodes via decodingStrategy: Base64)
 # Usage: provision_es_vault <vault_repo_path>
 provision_es_vault() {
   local vault_repo="$1"
@@ -251,6 +254,31 @@ provision_es_vault() {
   local access_key="${S3_ACCESS_KEY_ID:-floci}"
   local secret_key="${S3_SECRET_ACCESS_KEY:-floci1234}"
   vault_exec vault-0 "VAULT_TOKEN='$root_token' vault kv put -mount=secret aws/env S3_ACCESS_KEY_ID='$access_key' S3_SECRET_ACCESS_KEY='$secret_key'"
+
+  echo "[vault] Writing policy analyst-read-env..."
+  policy_b64="$(base64 < "$vault_repo/policies/analyst-read-env.hcl" | tr -d '\n')"
+  vault_exec vault-0 "VAULT_TOKEN='$root_token' sh -c 'echo $policy_b64 | base64 -d > /tmp/analyst-read-env.hcl && vault policy write analyst-read-env /tmp/analyst-read-env.hcl'"
+
+  echo "[vault] Writing role es-vault-analyst (SA apps-ns/analyst-vault-auth)..."
+  vault_exec vault-0 "VAULT_TOKEN='$root_token' vault write auth/kubernetes/role/es-vault-analyst \
+    bound_service_account_names='analyst-vault-auth' \
+    bound_service_account_namespaces='apps-ns' \
+    audience='https://kubernetes.default.svc.cluster.local' \
+    policies='analyst-read-env' \
+    token_ttl=1h"
+
+  # Seed secret/analyst/env for the analyst app's OPENCODE_ZEN_API_KEY.
+  # Stored as base64 (analyst ExternalSecret decodes via decodingStrategy).
+  # No committed default: the key is a real credential; supply
+  # ANALYST_ZEN_API_KEY_B64 (Infisical feeds it long-term, 007 FR-006).
+  echo "[vault] Seeding secret/analyst/env..."
+  local analyst_key_b64="${ANALYST_ZEN_API_KEY_B64:-}"
+  if [[ -n "$analyst_key_b64" ]]; then
+    vault_exec vault-0 "VAULT_TOKEN='$root_token' vault kv put -mount=secret analyst/env OPENCODE_ZEN_API_KEY='$analyst_key_b64'"
+  else
+    echo "[vault] WARNING: ANALYST_ZEN_API_KEY_B64 unset - SKIPPING secret/analyst/env seed"
+    echo "[vault]          analyst ESO will not produce analyst-secrets until provided"
+  fi
   echo "[vault] es-vault provisioning complete."
 }
 
