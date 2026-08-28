@@ -254,7 +254,7 @@ for attempt in 1 2 3 4 5; do
 done
 if [ "$login_ok" != "true" ]; then
   echo "ERROR: ArgoCD login failed after 5 attempts"
-  kill $PF_PID 2>/dev/null
+  kill $PF_PID 2>/dev/null || true
   exit 1
 fi
 echo "Login successful."
@@ -321,7 +321,7 @@ provision_es_vault "$VAULT_REPO"
 verify_vault_status
 
 # Cleanup port-forward
-kill $PF_PID 2>/dev/null
+kill $PF_PID 2>/dev/null || true
 
 # Create the app image
 echo Build image
