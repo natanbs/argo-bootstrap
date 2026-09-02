@@ -200,13 +200,19 @@ unseal_vault() {
 # Uses the root token from init.json (a tokenless CLI call silently 403s).
 enable_vault_secrets() {
   local vault_repo="$1"
-  echo "[vault] Enabling KV v2 secrets engine at secret/..."
+  echo "[vault] Enabling KV v2 secrets engine at secret/ and llm/..."
   local root_token
   root_token="$(python3 -c "import sys,json; print(json.load(open('$vault_repo/init.json'))['root_token'])")"
   vault_exec vault-0 "VAULT_TOKEN='$root_token' vault secrets enable -path=secret kv-v2" 2>/dev/null || {
-    echo "[vault] WARNING: KV v2 engine may already be enabled (continuing)"
+    echo "[vault] WARNING: KV v2 engine at secret/ may already be enabled (continuing)"
   }
-  echo "[vault] KV v2 secrets engine ready."
+  # The vault-llm ClusterSecretStore reads llm/opencode (analyst-secrets,
+  # pdf-scan-env). This mount must exist before seed_email_vault writes it; it
+  # is NOT created by the Vault chart, so create it here (idempotent).
+  vault_exec vault-0 "VAULT_TOKEN='$root_token' vault secrets enable -path=llm kv-v2" 2>/dev/null || {
+    echo "[vault] WARNING: KV v2 engine at llm/ may already be enabled (continuing)"
+  }
+  echo "[vault] KV v2 secrets engines ready (secret/, llm/)."
 }
 
 # Seed the email/* + llm/opencode Vault secrets from Infisical.
