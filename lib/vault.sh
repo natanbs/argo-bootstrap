@@ -216,68 +216,79 @@ enable_vault_secrets() {
 # sync into apps-ns, otherwise those Secrets never become Ready and the
 # resume-email sender/verification pipeline and the analyst/llm apps have no
 # credentials. This function is the bootstrap counterpart to
-# tech-companies/scripts/import-vault-secrets.sh: it pulls the same Infisical
-# values and writes them into Vault (through the vault-0 pod, so it works during
-# a cluster bring-up when Vault has no externally reachable address).
+# tech-companies/scripts/import-vault-secrets.sh: it fetches the same Infisical
+# values (via the Infisical v4 API, authenticated with INFISICAL_API_TOKEN) and
+# writes them into Vault through the vault-0 pod (so it works during a cluster
+# bring-up when Vault has no externally reachable address).
 #
-# Two Infisical projects feed this (distinct `infisical export` dotenvs):
-#   * Email project -> secret/email/env + secret/email/bulk
-#       SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM
-#       TINYVALIDATOR_API_KEY MAILBOXLAYER_API_KEY HUNTER_API_KEY SMTP_USER_API SMTP_PASS_API
-#   * LLM project (llm-b-ete) -> secret/llm/opencode
-#       OPENCODE_ZEN_API_KEY
-# Source of values, in order of preference:
-#   1. A dotenv file produced by `infisical export` (or manually).
-#   2. Individually-set env vars (fallback; routed through the vault CLI inside vault-0).
+# Two Infisical projects feed this:
+#   * Email project (default 0b5f1bae-...; override EMAIL_INFISICAL_PROJECT_ID)
+#       secret/email/env  : SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM
+#       secret/email/bulk : TINYVALIDATOR_API_KEY MAILBOXLAYER_API_KEY HUNTER_API_KEY SMTP_USER_API SMTP_PASS_API
+#   * LLM project llm-b-ete (default 1ef83d85-...; override LLM_INFISICAL_PROJECT_ID)
+#       secret/llm/opencode : OPENCODE_ZEN_API_KEY
 #
+# The Infisical environment defaults to `dev` (override INFISICAL_ENV) and the
+# secret path to `/` (override INFISICAL_SECRET_PATH). Requires curl + python3.
 # SMTP_PASS* values may contain spaces (app passwords), so every value is
 # single-quoted/escaped for injection into the pod's sh -c. Secret values are
 # never echoed - only key names.
 #
 # Idempotent; safe to run on every bootstrap.
-# Usage: seed_email_vault <vault_repo_path> [email_dotenv] [llm_dotenv]
+# Usage: seed_email_vault <vault_repo_path>
 seed_email_vault() {
   local vault_repo="$1"
-  local email_dotenv="${2:-${EMAIL_DOTENV:-}}"
-  local llm_dotenv="${3:-${LLM_DOTENV:-}}"
   local root_token
   root_token="$(python3 -c "import sys,json; print(json.load(open('$vault_repo/init.json'))['root_token'])")"
 
-  local env_keys=(SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM)
-  local bulk_keys=(TINYVALIDATOR_API_KEY MAILBOXLAYER_API_KEY HUNTER_API_KEY SMTP_USER_API SMTP_PASS_API)
-  local opencode_keys=(OPENCODE_ZEN_API_KEY)
+  local token="${INFISICAL_API_TOKEN:-}"
+  if [[ -z "$token" ]]; then
+    echo "[vault] WARNING: INFISICAL_API_TOKEN unset - skipping Infisical Vault seed"
+    return 0
+  fi
+  local infisical_env="${INFISICAL_ENV:-dev}"
+  local infisical_path="${INFISICAL_SECRET_PATH:-/}"
+  local email_project="${EMAIL_INFISICAL_PROJECT_ID:-0b5f1bae-7749-4e3c-aeea-cc44cc986ad6}"
+  local llm_project="${LLM_INFISICAL_PROJECT_ID:-1ef83d85-aeb8-4944-91c3-2fd7c0228600}"
 
-  # value_for <dotenv> <key> : read a value from the dotenv, else the env var.
-  value_for() {
-    local f="$1" k="$2" line val
-    if [[ -n "$f" && -f "$f" ]]; then
-      line="$(grep -E "^${k}=" "$f" 2>/dev/null | tail -n 1 || true)"
-      if [[ -n "$line" ]]; then
-        val="${line#*=}"
-        val="${val%\"}"; val="${val#\"}"
-        printf '%s' "$val"
-        return 0
-      fi
-    fi
-    printf '%s' "${!k:-}"
+  # fetch_secrets <project_id> <key...> -> prints "KEY=V grouped" lines? No:
+  # fetch_secrets prints a NUL-terminated "key=value" stream for lookup.
+  # Simpler: fetch each project's JSON once, emit "key value" per matching key.
+  fetch_secrets() {
+    local pid="$1"; shift
+    local json
+    json="$(curl -sf --max-time 30 \
+      "https://us.infisical.com/api/v4/secrets?projectId=${pid}&environment=${infisical_env}&secretPath=${infisical_path}&viewSecretValue=true&limit=100" \
+      -H "Authorization: Bearer ${token}")" || {
+        echo "[vault]   ERROR: failed to fetch secrets from Infisical project ${pid}" >&2
+        return 1
+      }
+    printf '%s' "$json" | python3 -c '
+import sys, json
+try:
+    d = json.load(sys.stdin)
+except Exception as e:
+    sys.stderr.write(f"invalid Infisical response: {e}\n"); sys.exit(1)
+need = set(sys.argv[1:])
+mapping = {s.get("secretKey"): s.get("secretValue", "") for s in d.get("secrets", [])}
+for k in need:
+    if k in mapping:
+        print(f"{k}\t{mapping[k]}")
+' "$@"
   }
 
-  # write_vault_path <dotenv> <vault_path> <key...>
+  # write_vault_path <vault_path> <key...> : fetch keys from Infisical and write.
   write_vault_path() {
-    local src="$1"; shift
     local path="$1"; shift
-    local args=() k v quoted
-    for k in "$@"; do
-      v="$(value_for "$src" "$k")"
-      if [[ -n "$v" ]]; then
-        quoted="$(printf '%s' "$v" | sed "s/'/'\\\\''/g")"
-        args+=("${k}='${quoted}'")
-      else
-        echo "[vault]   WARNING: ${k} not provided (Infisical/env) - skipping"
-      fi
-    done
+    local pid="$1"; shift
+    local args=() k v kv quoted
+    while IFS=$'\t' read -r k v; do
+      [[ -n "$k" ]] || continue
+      quoted="$(printf '%s' "$v" | sed "s/'/'\\\\''/g")"
+      args+=("${k}='${quoted}'")
+    done < <(fetch_secrets "$pid" "$@")
     if [[ ${#args[@]} -eq 0 ]]; then
-      echo "[vault]   ${path}: no source values provided, skipping"
+      echo "[vault]   ${path}: no matching Infisical keys, skipping"
       return 0
     fi
     local names=() a
@@ -287,9 +298,12 @@ seed_email_vault() {
   }
 
   echo "[vault] Seeding secrets into Vault from Infisical..."
-  write_vault_path "$email_dotenv" "email/env" "${env_keys[@]}"
-  write_vault_path "$email_dotenv" "email/bulk" "${bulk_keys[@]}"
-  write_vault_path "$llm_dotenv" "llm/opencode" "${opencode_keys[@]}"
+  write_vault_path "email/env" "$email_project" \
+    SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM
+  write_vault_path "email/bulk" "$email_project" \
+    TINYVALIDATOR_API_KEY MAILBOXLAYER_API_KEY HUNTER_API_KEY SMTP_USER_API SMTP_PASS_API
+  write_vault_path "llm/opencode" "$llm_project" \
+    OPENCODE_ZEN_API_KEY
   echo "[vault] Infisical seed complete (email/env, email/bulk, llm/opencode)."
 }
 
