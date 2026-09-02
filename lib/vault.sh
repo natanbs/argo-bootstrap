@@ -209,16 +209,99 @@ enable_vault_secrets() {
   echo "[vault] KV v2 secrets engine ready."
 }
 
+# Seed the email/* + llm/opencode Vault secrets from Infisical.
+#
+# A from-scratch bootstrap must restore the data that the committed
+# ExternalSecrets (`email-env`, `email-bulk`, `analyst-secrets`/`pdf-scan-env`)
+# sync into apps-ns, otherwise those Secrets never become Ready and the
+# resume-email sender/verification pipeline and the analyst/llm apps have no
+# credentials. This function is the bootstrap counterpart to
+# tech-companies/scripts/import-vault-secrets.sh: it pulls the same Infisical
+# values and writes them into Vault (through the vault-0 pod, so it works during
+# a cluster bring-up when Vault has no externally reachable address).
+#
+# Two Infisical projects feed this (distinct `infisical export` dotenvs):
+#   * Email project -> secret/email/env + secret/email/bulk
+#       SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM
+#       TINYVALIDATOR_API_KEY MAILBOXLAYER_API_KEY HUNTER_API_KEY SMTP_USER_API SMTP_PASS_API
+#   * LLM project (llm-b-ete) -> secret/llm/opencode
+#       OPENCODE_ZEN_API_KEY
+# Source of values, in order of preference:
+#   1. A dotenv file produced by `infisical export` (or manually).
+#   2. Individually-set env vars (fallback; routed through the vault CLI inside vault-0).
+#
+# SMTP_PASS* values may contain spaces (app passwords), so every value is
+# single-quoted/escaped for injection into the pod's sh -c. Secret values are
+# never echoed - only key names.
+#
+# Idempotent; safe to run on every bootstrap.
+# Usage: seed_email_vault <vault_repo_path> [email_dotenv] [llm_dotenv]
+seed_email_vault() {
+  local vault_repo="$1"
+  local email_dotenv="${2:-${EMAIL_DOTENV:-}}"
+  local llm_dotenv="${3:-${LLM_DOTENV:-}}"
+  local root_token
+  root_token="$(python3 -c "import sys,json; print(json.load(open('$vault_repo/init.json'))['root_token'])")"
+
+  local env_keys=(SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM)
+  local bulk_keys=(TINYVALIDATOR_API_KEY MAILBOXLAYER_API_KEY HUNTER_API_KEY SMTP_USER_API SMTP_PASS_API)
+  local opencode_keys=(OPENCODE_ZEN_API_KEY)
+
+  # value_for <dotenv> <key> : read a value from the dotenv, else the env var.
+  value_for() {
+    local f="$1" k="$2" line val
+    if [[ -n "$f" && -f "$f" ]]; then
+      line="$(grep -E "^${k}=" "$f" 2>/dev/null | tail -n 1 || true)"
+      if [[ -n "$line" ]]; then
+        val="${line#*=}"
+        val="${val%\"}"; val="${val#\"}"
+        printf '%s' "$val"
+        return 0
+      fi
+    fi
+    printf '%s' "${!k:-}"
+  }
+
+  # write_vault_path <dotenv> <vault_path> <key...>
+  write_vault_path() {
+    local src="$1"; shift
+    local path="$1"; shift
+    local args=() k v quoted
+    for k in "$@"; do
+      v="$(value_for "$src" "$k")"
+      if [[ -n "$v" ]]; then
+        quoted="$(printf '%s' "$v" | sed "s/'/'\\\\''/g")"
+        args+=("${k}='${quoted}'")
+      else
+        echo "[vault]   WARNING: ${k} not provided (Infisical/env) - skipping"
+      fi
+    done
+    if [[ ${#args[@]} -eq 0 ]]; then
+      echo "[vault]   ${path}: no source values provided, skipping"
+      return 0
+    fi
+    local names=() a
+    for a in "${args[@]}"; do names+=("${a%%=*}"); done
+    echo "[vault] Seeding ${path}: ${names[*]}"
+    vault_exec vault-0 "VAULT_TOKEN='$root_token' vault kv put -mount=secret \"$path\" ${args[*]}"
+  }
+
+  echo "[vault] Seeding secrets into Vault from Infisical..."
+  write_vault_path "$email_dotenv" "email/env" "${env_keys[@]}"
+  write_vault_path "$email_dotenv" "email/bulk" "${bulk_keys[@]}"
+  write_vault_path "$llm_dotenv" "llm/opencode" "${opencode_keys[@]}"
+  echo "[vault] Infisical seed complete (email/env, email/bulk, llm/opencode)."
+}
+
 # Provision ESO Kubernetes auth (roles es-vault, es-vault-analyst) + seed
-# secret/aws/env and secret/analyst/env.
-# Idempotent; safe to run on every bootstrap after init + unseal so a
-# from-scratch rebuild restores s3-credentials and analyst-secrets with no
-# manual steps (declarative cluster recovery, specs/007).
+# secret/aws/env. Idempotent; safe to run on every bootstrap after init + unseal
+# so a from-scratch rebuild restores s3-credentials with no manual steps
+# (declarative cluster recovery, specs/007). The analyst API key is NOT seeded
+# here - it now lives at secret/llm/opencode and is seeded from Infisical by
+# seed_email_vault() (analyst reads it via the vault-llm store, not analyst/env).
 # Token reviewer = the `vault` SA (bound to system:auth-delegator via
 # vault-server-binding) whose JWT+CA are mounted in the vault-0 pod.
 # S3 creds from S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY (defaults: floci/floci1234)
-# Analyst key from ANALYST_ZEN_API_KEY_B64 (NO default - real credential;
-#   store base64 form; ExternalSecret decodes via decodingStrategy: Base64)
 # Usage: provision_es_vault <vault_repo_path>
 provision_es_vault() {
   local vault_repo="$1"
@@ -267,18 +350,6 @@ provision_es_vault() {
     policies='analyst-read-env' \
     token_ttl=1h"
 
-  # Seed secret/analyst/env for the analyst app's OPENCODE_ZEN_API_KEY.
-  # Stored as base64 (analyst ExternalSecret decodes via decodingStrategy).
-  # No committed default: the key is a real credential; supply
-  # ANALYST_ZEN_API_KEY_B64 (Infisical feeds it long-term, 007 FR-006).
-  echo "[vault] Seeding secret/analyst/env..."
-  local analyst_key_b64="${ANALYST_ZEN_API_KEY_B64:-}"
-  if [[ -n "$analyst_key_b64" ]]; then
-    vault_exec vault-0 "VAULT_TOKEN='$root_token' vault kv put -mount=secret analyst/env OPENCODE_ZEN_API_KEY='$analyst_key_b64'"
-  else
-    echo "[vault] WARNING: ANALYST_ZEN_API_KEY_B64 unset - SKIPPING secret/analyst/env seed"
-    echo "[vault]          analyst ESO will not produce analyst-secrets until provided"
-  fi
   echo "[vault] es-vault provisioning complete."
 }
 

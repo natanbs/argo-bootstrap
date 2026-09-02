@@ -318,6 +318,11 @@ enable_vault_secrets "$VAULT_REPO"
 # Provision ESO Kubernetes auth + role es-vault + secret/aws/env so
 # applicative apps recover their secrets declaratively after a rebuild.
 provision_es_vault "$VAULT_REPO"
+# Seed email/* + llm/opencode (SMTP, 3rd-party provider creds, analyst API key)
+# from Infisical so the email-env/email-bulk/analyst ExternalSecrets sync on a
+# fresh cluster (no manual step). Sources: EMAIL_DOTENV and LLM_DOTENV (paths to
+# `infisical export` dotenvs for the email and llm-b-ete projects).
+seed_email_vault "$VAULT_REPO" "${EMAIL_DOTENV:-}" "${LLM_DOTENV:-}"
 verify_vault_status
 
 # Cleanup port-forward
