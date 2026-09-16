@@ -215,7 +215,7 @@ enable_vault_secrets() {
   echo "[vault] KV v2 secrets engines ready (secret/, llm/)."
 }
 
-# Seed the email/* + llm/opencode Vault secrets from Infisical.
+# Seed the email/*, llm/opencode, llm/langfuse Vault secrets from Infisical.
 #
 # A from-scratch bootstrap must restore the data that the committed
 # ExternalSecrets (`email-env`, `email-bulk`, `analyst-secrets`/`pdf-scan-env`)
@@ -232,7 +232,13 @@ enable_vault_secrets() {
 #       secret/email/env  : SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM
 #       secret/email/bulk : TINYVALIDATOR_API_KEY MAILBOXLAYER_API_KEY HUNTER_API_KEY SMTP_USER_API SMTP_PASS_API
 #   * LLM project llm-b-ete (default 1ef83d85-...; override LLM_INFISICAL_PROJECT_ID)
-#       secret/llm/opencode : OPENCODE_ZEN_API_KEY
+#       llm/opencode : OPENCODE_ZEN_API_KEY
+#       llm/langfuse : LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY LANGFUSE_BASE_URL
+#
+# Mount note: the `vault-llm` ClusterSecretStore reads the KV v2 engine at
+# mount `llm` (verified live, specs/083 T001), so the llm writes MUST be
+# mount-relative (`vault kv put -mount=llm <key>`); writing them to mount
+# `secret` (as the older code did) is invisible to the store.
 #
 # The Infisical environment defaults to `dev` (override INFISICAL_ENV) and the
 # secret path to `/` (override INFISICAL_SECRET_PATH). Requires curl + python3.
@@ -283,9 +289,11 @@ for k in need:
 ' "$@"
   }
 
-  # write_vault_path <vault_path> <key...> : fetch keys from Infisical and write.
+  # write_vault_path <vault_path> <mount> <project_id> <key...> : fetch keys
+  # from Infisical and write them to Vault mount <mount>.
   write_vault_path() {
     local path="$1"; shift
+    local mount="$1"; shift
     local pid="$1"; shift
     local args=() k v kv quoted
     while IFS=$'\t' read -r k v; do
@@ -300,17 +308,19 @@ for k in need:
     local names=() a
     for a in "${args[@]}"; do names+=("${a%%=*}"); done
     echo "[vault] Seeding ${path}: ${names[*]}"
-    vault_exec vault-0 "VAULT_TOKEN='$root_token' vault kv put -mount=secret \"$path\" ${args[*]}"
+    vault_exec vault-0 "VAULT_TOKEN='$root_token' vault kv put -mount=\"$mount\" \"$path\" ${args[*]}"
   }
 
   echo "[vault] Seeding secrets into Vault from Infisical..."
-  write_vault_path "email/env" "$email_project" \
+  write_vault_path "email/env" "secret" "$email_project" \
     SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM
-  write_vault_path "email/bulk" "$email_project" \
+  write_vault_path "email/bulk" "secret" "$email_project" \
     TINYVALIDATOR_API_KEY MAILBOXLAYER_API_KEY HUNTER_API_KEY SMTP_USER_API SMTP_PASS_API
-  write_vault_path "llm/opencode" "$llm_project" \
+  write_vault_path "opencode" "llm" "$llm_project" \
     OPENCODE_ZEN_API_KEY
-  echo "[vault] Infisical seed complete (email/env, email/bulk, llm/opencode)."
+  write_vault_path "langfuse" "llm" "$llm_project" \
+    LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY LANGFUSE_BASE_URL
+  echo "[vault] Infisical seed complete (email/env, email/bulk, llm/opencode, llm/langfuse)."
 }
 
 # Provision ESO Kubernetes auth (roles es-vault, es-vault-analyst) + seed
