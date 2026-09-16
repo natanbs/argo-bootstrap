@@ -2,9 +2,9 @@
   "schema_version": "1.0",
   "extensions": {
     "git": {
-      "version": "1.2.6",
+      "version": "1.8.1",
       "source": "local",
-      "manifest_hash": "sha256:8c1f936745153d595c98746af0862ec83562d84c41660341ddcc6fe0630921b6",
+      "manifest_hash": "sha256:9953c2b4bd2a4382be81bdf0db142a5f152f201e0b919d6da8b819bbc89bbf30",
       "enabled": true,
       "priority": 10,
       "registered_commands": {

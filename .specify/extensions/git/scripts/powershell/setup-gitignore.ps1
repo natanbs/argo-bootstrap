@@ -33,7 +33,12 @@ $ignoreRules = @(
     ".specify/extensions/.cache/",
     ".specify/extensions/.backup/",
     ".specify/extensions/*/*.local.yml",
-    ".specify/extensions/.registry"
+    ".specify/extensions/.registry",
+    # Spec Kit - Worktree / task DAG artifacts (git-extension feature-level isolation)
+    ".worktrees/",
+    "tasks_dag.json",
+    "git.worktree-manifest.json",
+    ".speckit-merge-conflict-*.md"
 )
 
 $negationRules = @(
@@ -139,7 +144,7 @@ if ($Json) {
         if ($addedIgnore.Count -gt 0) {
             Write-Host "Would add ignore rules ($($addedIgnore.Count)):"
             foreach ($rule in $addedIgnore) {
-                Write-Host "  → $rule"
+                Write-Host "  -> $rule"
             }
             Write-Host ""
         }
@@ -147,7 +152,7 @@ if ($Json) {
         if ($addedNegations.Count -gt 0) {
             Write-Host "Would add negation rules ($($addedNegations.Count)):"
             foreach ($rule in $addedNegations) {
-                Write-Host "  → $rule"
+                Write-Host "  -> $rule"
             }
             Write-Host ""
         }
@@ -163,7 +168,7 @@ if ($Json) {
         Write-Host ""
         
         if ($verifiedIgnore.Count -eq $ignoreRules.Count -and $verifiedNegations.Count -eq $negationRules.Count) {
-            Write-Host "All rules already configured ✓"
+            Write-Host "All rules already configured [OK]"
             Write-Host ""
         } else {
             $missingIgnore = $ignoreRules.Count - $verifiedIgnore.Count
@@ -174,13 +179,13 @@ if ($Json) {
         
         Write-Host "Verified ignore rules ($($verifiedIgnore.Count)):"
         foreach ($rule in $verifiedIgnore) {
-            Write-Host "  ✓ $rule"
+            Write-Host "  [OK] $rule"
         }
         Write-Host ""
         
         Write-Host "Verified negation rules ($($verifiedNegations.Count)):"
         foreach ($rule in $verifiedNegations) {
-            Write-Host "  ✓ $rule"
+            Write-Host "  [OK] $rule"
         }
         Write-Host ""
     } else {
@@ -193,7 +198,7 @@ if ($Json) {
             if ($addedIgnore.Count -gt 0) {
                 Write-Host "Rules added ($($addedIgnore.Count)):"
                 foreach ($rule in $addedIgnore) {
-                    Write-Host "  ✓ $rule"
+                    Write-Host "  [OK] $rule"
                 }
                 Write-Host ""
             }
@@ -201,7 +206,7 @@ if ($Json) {
             if ($addedNegations.Count -gt 0) {
                 Write-Host "Negation rules added ($($addedNegations.Count)):"
                 foreach ($rule in $addedNegations) {
-                    Write-Host "  ✓ $rule"
+                    Write-Host "  [OK] $rule"
                 }
                 Write-Host ""
             }
@@ -209,7 +214,7 @@ if ($Json) {
             Write-Host "Changes committed:"
             Write-Host "  [Spec Kit] Configure .gitignore for spec-kit directories"
         } else {
-            Write-Host "All rules already configured ✓"
+            Write-Host "All rules already configured [OK]"
             Write-Host ""
             Write-Host "Verified rules ($($verifiedIgnore.Count) ignore, $($verifiedNegations.Count) negations)"
         }
