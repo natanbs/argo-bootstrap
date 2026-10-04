@@ -1,3 +1,9 @@
+# Ingress Contract
+
+## Resource Contract
+This manifest defines the required structure for ArgoCD HTTP ingress.
+
+```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -19,3 +25,9 @@ spec:
             name: argocd-server
             port:
               number: 8081
+```
+
+## Behavioral Contract
+- Request with Host: argocd.lab to http://<host-ip>/ (port 80) MUST be routed to argocd-server:8081
+- MUST not redirect to HTTPS
+- MUST work with server.insecure=true
