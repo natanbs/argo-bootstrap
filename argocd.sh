@@ -173,7 +173,7 @@ elif ! k3d registry list 2>/dev/null | grep -q "$REG_NAME"; then
     echo "       Free a port and re-run."
     exit 1
   fi
-  k3d registry create reg -p "$REG_HOST_PORT"
+  k3d registry create reg -p "$REG_HOST_PORT" --delete-enabled
   docker update --restart unless-stopped k3d-reg
 fi
 

@@ -280,7 +280,11 @@
       "* `*": "deny"
     }
   },
+  "experimental": {
+    "openTelemetry": true
+  },
   "plugin": [
-    "./.opencode/plugin/speckit-events.ts"
+    "./.opencode/plugin/speckit-events.ts",
+    "@langfuse/opencode-observability-plugin@latest"
   ]
 }
