@@ -221,11 +221,13 @@ enable_vault_secrets() {
 # ExternalSecrets (`email-env`, `email-bulk`, `analyst-secrets`/`pdf-scan-env`)
 # sync into apps-ns, otherwise those Secrets never become Ready and the
 # resume-email sender/verification pipeline and the analyst/llm apps have no
-# credentials. This function is the bootstrap counterpart to
-# tech-companies/scripts/import-vault-secrets.sh: it fetches the same Infisical
-# values (via the Infisical v4 API, authenticated with INFISICAL_API_TOKEN) and
-# writes them into Vault through the vault-0 pod (so it works during a cluster
-# bring-up when Vault has no externally reachable address).
+# credentials. This is the k3d cluster's seeding path; the floci/EKS cluster
+# seeds the same values via the infra/vault floci seed
+# (infra/vault/scripts/floci/seed-map.yaml, run by infra/argocd/bootstrap.sh
+# STEP 8). It fetches the Infisical values (via the Infisical v4 API,
+# authenticated with INFISICAL_API_TOKEN) and writes them into Vault through the
+# vault-0 pod (so it works during a cluster bring-up when Vault has no
+# externally reachable address).
 #
 # Two Infisical projects feed this:
 #   * Email project (default 0b5f1bae-...; override EMAIL_INFISICAL_PROJECT_ID)
