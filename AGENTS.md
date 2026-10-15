@@ -15,5 +15,5 @@ This project is bound by the team-ai-directives knowledge base.
 
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/010-declarative-bootstrap/plan.md
+at specs/011-restore-argocd-ingress/plan.md
 <!-- SPECKIT END -->
