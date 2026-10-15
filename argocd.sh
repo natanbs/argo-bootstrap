@@ -315,9 +315,9 @@ wait_for_vault_tls
 init_vault "$VAULT_REPO"
 unseal_vault
 enable_vault_secrets "$VAULT_REPO"
-# Provision ESO Kubernetes auth + role es-vault + secret/aws/env so
+# Provision ESO Kubernetes auth + the analyst-read-env role so
 # applicative apps recover their secrets declaratively after a rebuild.
-provision_es_vault "$VAULT_REPO"
+provision_eso_vault "$VAULT_REPO"
 # Seed email/* + llm/opencode (SMTP, 3rd-party provider creds, analyst API key)
 # from Infisical so the email-env/email-bulk/analyst ExternalSecrets sync on a
 # fresh cluster (no manual step). Source: INFISICAL_API_TOKEN (Infisical v4 API).
