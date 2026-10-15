@@ -323,17 +323,22 @@ for k in need:
   echo "[vault] Infisical seed complete (email/env, email/bulk, llm/opencode, llm/langfuse)."
 }
 
-# Provision ESO Kubernetes auth (roles es-vault, es-vault-analyst) + seed
-# secret/aws/env. Idempotent; safe to run on every bootstrap after init + unseal
-# so a from-scratch rebuild restores s3-credentials with no manual steps
-# (declarative cluster recovery, specs/007). The analyst API key is NOT seeded
-# here - it now lives at secret/llm/opencode and is seeded from Infisical by
-# seed_email_vault() (analyst reads it via the vault-llm store, not analyst/env).
+# Provision ESO Kubernetes auth + the `analyst-read-env` role (es-vault-analyst)
+# so applicative apps recover their secrets declaratively after a rebuild
+# (declarative cluster recovery, specs/007). Idempotent; safe to run on every
+# bootstrap after init + unseal.
+#
+# The former `es-vault` role / `aws-read-env` policy / `secret/aws/env` seed for
+# the `aws` app were removed (2026-10-15): that app no longer ships a
+# SecretStore/ExternalSecret, so it has no runtime Vault dependency. The analyst
+# API key is NOT seeded here - it now lives at secret/llm/opencode and is seeded
+# from Infisical by seed_email_vault() (the analyst reads it via the vault-llm
+# store).
+#
 # Token reviewer = the `vault` SA (bound to system:auth-delegator via
 # vault-server-binding) whose JWT+CA are mounted in the vault-0 pod.
-# S3 creds from S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY (defaults: floci/floci1234)
-# Usage: provision_es_vault <vault_repo_path>
-provision_es_vault() {
+# Usage: provision_eso_vault <vault_repo_path>
+provision_eso_vault() {
   local vault_repo="$1"
   local root_token
   root_token="$(python3 -c "import sys,json; print(json.load(open('$vault_repo/init.json'))['root_token'])")"
@@ -350,24 +355,6 @@ provision_es_vault() {
     kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
     disable_iss_validation=true"
 
-  echo "[vault] Writing policy aws-read-env..."
-  local policy_b64
-  policy_b64="$(base64 < "$vault_repo/policies/aws-read-env.hcl" | tr -d '\n')"
-  vault_exec vault-0 "VAULT_TOKEN='$root_token' sh -c 'echo $policy_b64 | base64 -d > /tmp/aws-read-env.hcl && vault policy write aws-read-env /tmp/aws-read-env.hcl'"
-
-  echo "[vault] Writing role es-vault (SA apps-ns/es-vault-auth)..."
-  vault_exec vault-0 "VAULT_TOKEN='$root_token' vault write auth/kubernetes/role/es-vault \
-    bound_service_account_names='es-vault-auth' \
-    bound_service_account_namespaces='apps-ns' \
-    audience='https://kubernetes.default.svc.cluster.local' \
-    policies='aws-read-env' \
-    token_ttl=1h"
-
-  echo "[vault] Seeding secret/aws/env..."
-  local access_key="${S3_ACCESS_KEY_ID:-floci}"
-  local secret_key="${S3_SECRET_ACCESS_KEY:-floci1234}"
-  vault_exec vault-0 "VAULT_TOKEN='$root_token' vault kv put -mount=secret aws/env S3_ACCESS_KEY_ID='$access_key' S3_SECRET_ACCESS_KEY='$secret_key'"
-
   echo "[vault] Writing policy analyst-read-env..."
   policy_b64="$(base64 < "$vault_repo/policies/analyst-read-env.hcl" | tr -d '\n')"
   vault_exec vault-0 "VAULT_TOKEN='$root_token' sh -c 'echo $policy_b64 | base64 -d > /tmp/analyst-read-env.hcl && vault policy write analyst-read-env /tmp/analyst-read-env.hcl'"
@@ -380,7 +367,7 @@ provision_es_vault() {
     policies='analyst-read-env' \
     token_ttl=1h"
 
-  echo "[vault] es-vault provisioning complete."
+  echo "[vault] ESO roles provisioning complete."
 }
 
 # Verify vault cluster status
