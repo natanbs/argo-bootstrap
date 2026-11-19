@@ -262,8 +262,8 @@ seed_email_vault() {
   fi
   local infisical_env="${INFISICAL_ENV:-dev}"
   local infisical_path="${INFISICAL_SECRET_PATH:-/}"
-  local email_project="${EMAIL_INFISICAL_PROJECT_ID:-0b5f1bae-7749-4e3c-aeea-cc44cc986ad6}"
-  local llm_project="${LLM_INFISICAL_PROJECT_ID:-1ef83d85-aeb8-4944-91c3-2fd7c0228600}"
+  local email_project="${EMAIL_INFISICAL_PROJECT_ID:?EMAIL_INFISICAL_PROJECT_ID must be set (export in ~/.zshrc; do not hardcode)}"
+  local llm_project="${LLM_INFISICAL_PROJECT_ID:?LLM_INFISICAL_PROJECT_ID must be set (export in ~/.zshrc; do not hardcode)}"
 
   # fetch_secrets <project_id> <key...> -> prints "KEY=V grouped" lines? No:
   # fetch_secrets prints a NUL-terminated "key=value" stream for lookup.
